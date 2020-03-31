@@ -167,7 +167,7 @@ ui <- dashboardPage(
                 menuItem(
                     "Info", tabName = "index", icon = icon("info")),
                 menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
-                menuItem("Psycological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
+                menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
                 menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
                 menuItem("Data", tabName = "data", icon = icon("fas fa-share-square"), badgeLabel = "coming soon", badgeColor = "orange")
             )
@@ -252,12 +252,11 @@ ui <- dashboardPage(
                             )
                         ),
                         fluidRow(
-                            valueBox(nrow(dt), "+ Participants", icon = icon("user-edit"), width = 3),
-                            valueBox(length(unique(dt$language)), "+ Languages", icon = icon("language"), width = 3),
-                            valueBox("75+", "Researchesr", icon = icon("user-graduate"), width = 3),
+                            valueBox(paste0(prettyNum(nrow(dt), big.mark=" ", scientific=FALSE), "+"), "Participants", icon = icon("user-edit"), width = 3),
+                            valueBox(paste0(length(unique(dt$language)),"+"), "Languages", icon = icon("language"), width = 3),
+                            valueBox("80+", "Researchesr", icon = icon("user-graduate"), width = 3),
                             valueBox(404, "Something", icon = icon("project-diagram"), width = 3)
                         )
-                        
                 ),
                 tabItem(tabName = "sample",
                         h3("Our Sample"),
@@ -325,6 +324,7 @@ ui <- dashboardPage(
                         )
                 ),
                 tabItem(tabName = "Variables",
+                        box(width = 12, solidHeader = TRUE,
                             navbarPage("Data Tool",
                                        tabPanel("Government Reponse",
                                                 sidebarLayout(
@@ -341,6 +341,7 @@ ui <- dashboardPage(
                                        tabPanel("Emotional Response"),
                                        tabPanel("Cross Domain Relationships")
                                        )
+                            )
                         ),
                 tabItem(tabName = "development",
                         h2("Development over Time"),
