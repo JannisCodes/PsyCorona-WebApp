@@ -167,7 +167,7 @@ ui <- dashboardPage(
                 menuItem(
                     "Info", tabName = "index", icon = icon("info")),
                 menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
-                menuItem("Play Zone", tabName = "network", icon = icon("fas fa-pencil-ruler")),
+                menuItem("Psycological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
                 menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
                 menuItem("Data", tabName = "data", icon = icon("fas fa-share-square"), badgeLabel = "coming soon", badgeColor = "orange")
             )
@@ -219,7 +219,7 @@ ui <- dashboardPage(
                                        target="_blank",
                                        icon("facebook")),
                                 HTML("&nbsp"),
-                                tags$a(href="https://github.com/JannisCodes", 
+                                tags$a(href="https://github.com/JannisCodes/PsyCorona-WebApp", 
                                        target="_blank", 
                                        icon("github")),
                                 br(),
@@ -238,7 +238,7 @@ ui <- dashboardPage(
                                             a("Our Sample", onclick = "openTab('sample')", href="#"),
                                             " tab offers a ... ."),
                                     tags$li("The ",
-                                            a("B section", onclick = "openTab('network')", href="#"),
+                                            a("B section", onclick = "openTab('Variables')", href="#"),
                                             " tab offers an interactive interface to explore .. ."),
                                     tags$li("The ",
                                             a("Development", onclick = "openTab('development')", href="#"),
@@ -324,48 +324,23 @@ ui <- dashboardPage(
                             )
                         )
                 ),
-                tabItem(tabName = "network",
-                        h2("Data Science"),
-                        fluidRow(
-                          box(#status = "primary",
-                            width = 8,
-                            leafletOutput("mymap")
-                          ),
-                          box(#status = "primary",
-                            shinyjs::useShinyjs(),
-                            id = "country_controls",
-                            width = 4,
-                            height = "600px",
-                            title = "Controls",
-                            solidHeader = T,
-                            status = "primary",
-                            "Use these controls to inspect the connectedness of the codes.",
-                            br(), 
-                            
-                            multiInput(
-                              inputId = "Id010",
-                              label = "Countries :", 
-                              choices = NULL,
-                              choiceNames = lapply(seq_along(unique(overview$coded_country)), 
-                                                   function(i) tagList(tags$img(src = unique(overview$flag)[i],
-                                                                                width = 20, 
-                                                                                height = 15), unique(overview$coded_country)[i])),
-                              choiceValues = unique(overview$coded_country),
-                              selected = NULL
-                            ),
-                            hr(),
-                            
-                            div(style="display:inline-block;width:100%;text-align: center;",
-                                actionBttn(
-                                  inputId = "reset_input_ctry",
-                                  label = "Reset Inputs",
-                                  style = "simple", 
-                                  color = "primary",
-                                  size = "sm"
-                                ),
-                            )
-                          )
-                        )
+                tabItem(tabName = "Variables",
+                            navbarPage("Data Tool",
+                                       tabPanel("Government Reponse",
+                                                sidebarLayout(
+                                                  sidebarPanel(
+                                                    "Nice Controls here"
+                                                    ),
+                                                  mainPanel(
+                                                    "Nice Plot here"
+                                                  )
+                                                )
+                                                ),
+                                       tabPanel("Community Response"),
+                                       tabPanel("Behavioral Response"),
+                                       tabPanel("Emotional Response"),
+                                       tabPanel("Cross Domain Relationships")
+                                       )
                         ),
                 tabItem(tabName = "development",
                         h2("Development over Time"),
@@ -397,7 +372,7 @@ ui <- dashboardPage(
                                 h4(HTML(paste("<center>","We will soon start sharing some of our data on the Open Science Framework.", "</center>"))),
                                 h4(HTML(paste("<center>","To protect the privacy and confidentiality of our participants, sensitive data will always only be available to members of the immediate research collaboration", "</center>"))),
                                 tags$br(),
-                                HTML(paste("<center>","Part of data sharing is also open availability of code. The code to this web applet is available at: github-link-goes-here.", "</center>")),
+                                HTML("<center>Part of data sharing is also open availability of code. The code to this web applet is available at <a href='https://github.com/JannisCodes/PsyCorona-WebApp'>our git repository</a></center>"),
                                 tags$br(),
                                 tags$br()
                             )
