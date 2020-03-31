@@ -2,63 +2,90 @@ library(shiny)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(ggthemes)
+#library(ggthemes)
 library(stats)
 library(shinydashboard)
-library(dygraphs)
-library(RColorBrewer)
-library(dichromat)
-library(zoo)
-library(xts)
-library(visNetwork)
+#library(dygraphs)
+#library(RColorBrewer)
+#library(dichromat)
+#library(zoo)
+#library(xts)
+#library(visNetwork)
 #library(geomnet)
-library(igraph)
+#library(igraph)
 library(stringr)
-library(knitr)
-library(DT)
+#library(knitr)
+#library(DT)
 library(shinyjs)
 library(shinyWidgets)
 library(r2d3)
-library(forcats)
-library(rlang)
+#library(forcats)
+#library(rlang)
 library(plotly)
-library(ggiraph)
+#library(ggiraph)
 library(gapminder)
-library(maps)
-library(radarchart)
+#library(maps)
+#library(rworldmap)
+#library(radarchart)
+library(haven)
+library(leaflet)
+library(highcharter)
+library(rgeos)
+
+# R Studio Clean-Up
+cat("\014") # clear console
+rm(list=ls()) # clear workspace
+gc # garbage collector
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # truncate data:
 dt <- readRDS("data/reducedData.rds")
-countryList <- c("USA", "Germany", "Argentina", "Sweden", "Tanzania", "Italy", "Spain", "France", "Indonesia", "Turkey", "Algeria", "Chile", "Mexico")
 
-dt$country_sim = sample(x = countryList, size = nrow(dt), replace = T)
-dt$country_sim_iso2 <- iso.alpha(dt$country_sim, n=2)
-dt$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(dt$country_sim_iso2))
+# load geo spatial data
+library(rnaturalearth)
+library(rnaturalearthdata)
+world.data <- ne_countries(scale = "medium", returnclass = "sf")
+unique(dt$coded_country)[!unique(dt$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
 
-country_count <- dt %>%
-  select(country_sim) %>%
-  group_by(country_sim) %>%
-  tally() %>%
-  arrange(desc(n)) %>%
-  na.omit()
+# all ISO-2 country code to dataframe and flags
+dt <- merge(x = dt, y = world.data %>% select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
+dt$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(dt$iso_a2))
 
-#flags <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(unique(overview$country_sim_iso2))) #map.world$iso2
+# add survey data to world map data
+ctry.scales <- dt %>%
+  filter(!is.na(coded_country)) %>%
+  group_by(coded_country) %>%
+  dplyr::summarize(
+    n = n(),
+    affHighPos = mean(affHighPos.m, na.rm = T),
+    affHighNeg = mean(affHighNeg.m, na.rm = T),
+    affLowPos = mean(affLowPos.m, na.rm = T),
+    affLowNeg = mean(affLowNeg.m, na.rm = T),
+    lone = mean(lone.m, na.rm = T),
+    bor = mean(bor.m, na.rm = T),
+    isoPers = mean(isoPers.m, na.rm = T),
+    isoOnl = mean(isoOnl.m, na.rm = T),
+    ext = mean(ext.m, na.rm = T),
+    beh = mean(beh.m, na.rm = T),
+    c19Hope = mean(c19Hope, na.rm = T),
+    c19Eff = mean(c19Eff, na.rm = T),
+    para = mean(para.m, na.rm = T),
+    consp = mean(consp.m, na.rm = T),
+    jobinsec = mean(jobinsec.m, na.rm = T),
+    pfs = mean(pfs.m, na.rm = T)
+  )
 
-map.world = map_data("world")
-map.world$iso2 <- iso.alpha(map.world$region, n=2) # add ISO-2 country codes
-map.world$iso2[map.world$region == "Virgin Islands"] <- "VI" # add ISO-2 country code for VI
-map.world <- map.world %>% 
-  mutate(flag = sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(iso2))) # add flags
-map.world <- merge(x=map.world, y=country_count, by.x = "region", by.y="country_sim", all=TRUE)
-map.world$n[is.na(map.world$n)] <- 0
+world.data <- merge(x=world.data, y=ctry.scales, by.x = "admin", by.y="coded_country", all.x=TRUE)
+# world.data$n[is.na(world.data$n)] <- 0
+world.n <- world.data %>% select(admin, iso_a2, n)
+
 
 overview <- data.frame(language = dt$language, 
                        gender = as.character(as_factor(dt$gender)), 
                        age = as.character(as_factor(dt$age)), 
                        education = as.character(as_factor(dt$edu)),
                        political = as.character(dt$PolOrCat) %>% str_replace_all(c("Libertarian LeftLibertarian Right" = NA_character_)),
-                       country_sim = dt$country_sim,
+                       coded_country = dt$coded_country,
                        flag = dt$flag)
 
 r2d3_script <- "
@@ -149,6 +176,12 @@ ui <- dashboardPage(
         dashboardBody(
             tags$script(HTML("$('body').addClass('sidebar-mini');")),
             tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
+            tags$style(
+              type = 'text/css', 
+              '.bg-aqua {background-color: #3c8dbe!important; }
+               .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }'
+            ),
+            tags$script(src = "https://code.highcharts.com/mapdata/custom/world.js"),
             tags$script(HTML("
                             var openTab = function(tabName){
                               $('a', $('.sidebar')).each(function() {
@@ -219,8 +252,8 @@ ui <- dashboardPage(
                             )
                         ),
                         fluidRow(
-                            valueBox(9002, "Participants", icon = icon("user-edit"), width = 3),
-                            valueBox(11, "Languages", icon = icon("language"), width = 3),
+                            valueBox(nrow(dt), "+ Participants", icon = icon("user-edit"), width = 3),
+                            valueBox(length(unique(dt$language)), "+ Languages", icon = icon("language"), width = 3),
                             valueBox("75+", "Researchesr", icon = icon("user-graduate"), width = 3),
                             valueBox(404, "Something", icon = icon("project-diagram"), width = 3)
                         )
@@ -240,19 +273,15 @@ ui <- dashboardPage(
                                     choiceValues = c("language", "gender", "age", "education", "political")
                                     #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                                 ),
-                                
-                                #selectInput("var", "Variable",
-                                #            list("language", "gender", "age", "education", "political"),
-                                #            selected = "language"),
                                 d3Output("d3.bar"),
                             )
                         ),
                         fluidRow(
                             box(
+                                status = "primary",
                                 width = 6,
-                                "World Map",
-                                #plotlyOutput("pp.map"),
-                                girafeOutput("distPlot", width = "400px")
+                                tags$strong("World Map"),
+                                highchartOutput("freqPlot")
                             ),
                             box(
                               shinyjs::useShinyjs(),
@@ -263,18 +292,18 @@ ui <- dashboardPage(
                               solidHeader = T,
                               status = "primary",
                               #"Use these controls to ",
-                              br(), 
+                              #br(), 
                               
                               multiInput(
                                 inputId = "sample_country_selection",
                                 label = "Countries:", 
                                 choices = NULL,
-                                choiceNames = lapply(seq_along(unique(overview$country_sim)), 
+                                choiceNames = lapply(seq_along(unique(overview$coded_country)), 
                                                      function(i) tagList(tags$img(src = unique(overview$flag)[i],
                                                                                   width = 20, 
-                                                                                  height = 15), unique(overview$country_sim)[i])),
-                                choiceValues = unique(overview$country_sim),
-                                selected = unique(overview$country_sim)
+                                                                                  height = 15), unique(overview$coded_country)[i])),
+                                choiceValues = unique(overview$coded_country),
+                                selected = unique(overview$coded_country)
                               ),
                               hr(),
                               
@@ -300,8 +329,7 @@ ui <- dashboardPage(
                         fluidRow(
                           box(#status = "primary",
                             width = 8,
-                            #height = 500,
-                            #visNetworkOutput('conceptnetwork', height = "600px")
+                            leafletOutput("mymap")
                           ),
                           box(#status = "primary",
                             shinyjs::useShinyjs(),
@@ -318,11 +346,11 @@ ui <- dashboardPage(
                               inputId = "Id010",
                               label = "Countries :", 
                               choices = NULL,
-                              choiceNames = lapply(seq_along(unique(overview$country_sim)), 
+                              choiceNames = lapply(seq_along(unique(overview$coded_country)), 
                                                    function(i) tagList(tags$img(src = unique(overview$flag)[i],
                                                                                 width = 20, 
-                                                                                height = 15), unique(overview$country_sim)[i])),
-                              choiceValues = unique(overview$country_sim),
+                                                                                height = 15), unique(overview$coded_country)[i])),
+                              choiceValues = unique(overview$coded_country),
                               selected = NULL
                             ),
                             hr(),
@@ -352,10 +380,7 @@ ui <- dashboardPage(
                                 h4(HTML(paste("<center>","As soon as we have multiple data waves you can explore this data here.", "</center>"))),
                                 tags$br(),
                                 tags$br(),
-                                "For now you can play around with data tool by the ", tags$a(href="https://www.gapminder.org/", 
-                                                                                            target="_blank",
-                                                                                            "Gapminder Foundation"), ":",
-                                plotlyOutput("gapminder")
+                                #plotlyOutput("gapminder")
                             )
                         )
                         ),
@@ -379,10 +404,10 @@ ui <- dashboardPage(
                         )
                         # tabsetPanel(type = "tab",
                         #             tabPanel("Twitter",
-                        #                      HTML("<iframe src=\"https://drive.google.com/file/d/12Ix7DFUNXlj-t791K9_lP_l-Xp7nNeKB/preview\" width=\"100%\" height=\"725\"></iframe>")
+                        #                      "stuff for tab 1"
                         #             ),
                         #             tabPanel("Interview",
-                        #                      HTML("<iframe src=\"https://drive.google.com/file/d/12ADnePfV5ifgQsPg8nMpn8Ohj46XVEZT/preview\" width=\"100%\" height=\"725\"></iframe>")
+                        #                      "stuff for tab 2"
                         #             )
                         # )
                 )
@@ -394,7 +419,7 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
     output$d3.bar <- renderD3({
         overview %>%
-            filter(country_sim %in% input$sample_country_selection) %>%
+            filter(coded_country %in% input$sample_country_selection) %>%
             mutate(label = !!sym(input$var)) %>%
             group_by(label) %>%
             tally() %>%
@@ -403,63 +428,27 @@ server <- function(input, output, session) {
             mutate(
                 y = n,
                 ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
-                fill = "#E69F00", #ifelse(label != input$val, "#E69F00", "red"),
-                mouseover = "#0072B2"
+                fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
+                mouseover = "#2a5674"
             ) %>%
             r2d3(r2d3_file)
     })
     
-    output$distPlot <- renderGirafe({
-        ggiraph::ggiraph(
-            ggobj = ggplot() + 
-                geom_polygon_interactive(data = map.world, color = 'gray70', size = 0.1,
-                                         aes(x = long, y = lat, group = group, fill = n,
-                                             tooltip = sprintf("%s<br/>%s", region, n))) + #tooltip = sprintf("%s<br/>%s", region, Value))
-                #scale_fill_gradientn(colours = brewer.pal(5, "RdBu"), na.value = 'white') + 
-                scale_fill_gradientn(colours = c("white", "green", "red"), values = c(0,min(map.world$n[map.world$n>0]),max(map.world$n))) +
-                labs(title = NULL, x = NULL, y = NULL) + #fill = data_type, color = data_type, caption = capt 
-                scale_y_continuous(breaks = c()) + 
-                scale_x_continuous(breaks = c()) + 
-                theme_bw() + 
-                theme(axis.text = element_text(size = 14),
-                      axis.title = element_text(size = 14),
-                      strip.text = element_text(size = 14),
-                      panel.grid.major = element_blank(), 
-                      panel.grid.minor = element_blank(),
-                      panel.background = element_blank(), 
-                      legend.position = "bottom",
-                      panel.border = element_blank(), 
-                      strip.background = element_rect(fill = 'white', colour = 'white'))
-            #code = print(worldMaps(df, world_data, input$data_type, input$period, input$indicator)))
-        )
+    output$freqPlot <- renderHighchart({
+      hcmap(download_map_data = FALSE,
+            data = world.n %>% filter(admin %in% input$sample_country_selection), value = "n",
+            joinBy = c("iso-a2", "iso_a2"), name = "sample size",
+            #dataLabels = list(enabled = TRUE, format = '{point.name}'),
+            borderColor = "#FAFAFA", borderWidth = 0.1,
+            tooltip = list(valueDecimals = 0, valuePrefix = "n = "))%>% 
+        hc_mapNavigation(enabled = TRUE) %>%
+        hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic") 
     })
+    #Color schemes: https://carto.com/carto-colors/
     
-    output$gapminder <- renderPlotly(
-      gapminder %>%
-        plot_ly(
-          x = ~gdpPercap, 
-          y = ~lifeExp, 
-          size = ~pop, 
-          color = ~continent, 
-          #opacity = 0.75,
-          frame = ~year, 
-          text = ~country, 
-          hoverinfo = "text",
-          type = 'scatter',
-          mode = 'markers',
-          sizes = c(10, 70),
-          marker = list(opacity = 0.5, sizemode = 'diameter')
-        ) %>%
-        layout(
-          xaxis = list(
-            title = "GPD per capita",
-            type = "log"
-          ),
-          yaxis = list(
-            title = "Lice expectency [years]"
-          )
-        )
-    )
+    output$mymap <- renderLeaflet({
+      leaflet(options = leafletOptions(crs = leafletCRS()))
+    })
     
     observeEvent(input$reset_input_ctry, {
       shinyjs::reset("country_controls")
@@ -469,7 +458,7 @@ server <- function(input, output, session) {
       updateMultiInput(
         session = session,
         inputId = "sample_country_selection",
-        selected = unique(overview$country_sim)
+        selected = unique(overview$coded_country)
       )
     })
     
@@ -480,88 +469,6 @@ server <- function(input, output, session) {
         selected = character(0)
       )
     })
-    
-    # observeEvent(input$bar_clicked, {
-    #     updateTextInput(session, "val", value = input$bar_clicked)
-    # })
-    
-    # output$nodeinfo <- DT::renderDataTable(
-    #     DT::datatable(nodeinfo %>% mutate(`Average Connection Density` = round(`Average Connection Density`,2)), 
-    #                   filter = 'top', 
-    #                   extensions = 'Buttons', 
-    #                   options = list(
-    #                       columnDefs = list(list(className = 'dt-center')),
-    #                       autoWidth = TRUE,
-    #                       dom = 'Bfrtlip',
-    #                       buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))) %>%
-    #         DT::formatRound('Average Connection Density', digits = 2)
-    # )
-    # 
-    # output$conceptnetwork <- renderVisNetwork({
-    #     
-    #     nodes.fltr <- nodes %>% filter(value >= input$node.min, 
-    #                                    value <= input$node.max)
-    #     edges.fltr <- edges %>% filter(width2 >= input$cov.min, 
-    #                                    width2 <= input$cov.max,
-    #                                    as.character(edges$from) %in% as.character(nodes.fltr$label),
-    #                                    as.character(edges$to) %in% as.character(nodes.fltr$label))
-    #     
-    #     visNetwork(nodes.fltr, edges.fltr, heigth = "100%", width = "100%") %>%
-    #         visIgraphLayout(layout = "layout_in_circle") %>%
-    #         visNodes(
-    #             shape = "dot",
-    #             color = list(
-    #                 background = "#0085AF",
-    #                 border = "#013848",
-    #                 highlight = "#FF8000"
-    #             )
-    #         ) %>%
-    #         visEdges(
-    #             shadow = FALSE,
-    #             color = list(color = "#0085AF", highlight = "#C62F4B"),
-    #             scaling = list(min = 10, max = 30)
-    #         ) %>%
-    #         visOptions(highlightNearest = list(enabled = T, degree = 1, hover = T), 
-    #                    nodesIdSelection = list(main = "Select variable"), 
-    #                    selectedBy = list(variable = "sample", multiple = T, main="Select cluster")) %>% 
-    #         visLayout(randomSeed = 11)
-    # })
-    # 
-    # output$dygraph <- renderDygraph({
-    #     
-    #     tdata <- xts(x = tweet.code.dum %>% select(input$dev.vars),
-    #                  order.by = tweet.code.dum$date)
-    #     
-    #     color.shade1 <- ifelse(input$rb.shade1 == TRUE, "lightgrey","white")
-    #     color.shade2 <- ifelse(input$rb.shade2 == TRUE, "lightgrey","white")
-    #     color.shade3 <- ifelse(input$rb.shade3 == TRUE, "lightgrey","white")
-    #     
-    #     dygraph(tdata) %>% 
-    #         dyAxis("y", label = "Average Frequency per day") %>%
-    #         dyRoller(rollPeriod = input$roll, showRoller=F) %>%
-    #         dyShading(from = as.POSIXct("2015-4-14", format="%Y-%m-%d"), to = as.POSIXct("2015-11-1", format="%Y-%m-%d"), color = color.shade1) %>%
-    #         dyShading(from = as.POSIXct("2015-12-1", format="%Y-%m-%d"), to = as.POSIXct("2016-5-31", format="%Y-%m-%d"), color = color.shade2) %>%
-    #         dyShading(from = as.POSIXct("2016-8-1", format="%Y-%m-%d"), to = as.POSIXct("2018-6-20", format="%Y-%m-%d"), color = color.shade3) %>%
-    #         dyEvent("2016-12-1", "NVA Report", labelLoc = "top") %>%
-    #         dyEvent("2017-4-1", "NVA Report", labelLoc = "top") %>%
-    #         dyOptions(colors = RColorBrewer::brewer.pal(9, "Set1")) %>%
-    #         dyHighlight()%>%
-    #         dyLegend(labelsDiv = 'legend.div', labelsSeparateLines=T) %>%
-    #         dyRangeSelector()
-    # })
-    # 
-    # observeEvent(input$reset_input_net, {
-    #     shinyjs::reset("network-controls")
-    # })
-    # 
-    # observeEvent(input$reset_input_dev, {
-    #     shinyjs::reset("development_controls")
-    # })
-    # 
-    # #observeEvent(input$switch_Data, {
-    # #    updateTabItems(session, "tabs", "data")
-    # #})
-    # 
 }
 
 # Run the application 
