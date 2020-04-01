@@ -26,7 +26,7 @@ library(plotly)
 library(gapminder)
 #library(maps)
 #library(rworldmap)
-#library(radarchart)
+library(radarchart)
 library(haven)
 library(leaflet)
 library(highcharter)
@@ -74,6 +74,16 @@ ctry.scales <- dt %>%
     jobinsec = mean(jobinsec.m, na.rm = T),
     pfs = mean(pfs.m, na.rm = T)
   )
+
+# radar <- vector(mode="list", length=nrow(ctry.scales))
+# names(radar) <- ctry.scales$coded_country
+# 
+# for (i in 1:nrow(ctry.scales)) { 
+#   radar[[i]] <- c(ctry.scales$affHighNeg[i], ctry.scales$affHighPos[i], ctry.scales$affLowNeg[i], ctry.scales$affLowPos[i]) 
+# }
+# 
+# labs <- c("High Negative", "High Positive", "Low Negative", "Low Positive")
+# chartJSRadar(scores = radar, labs = labs)
 
 world.data <- merge(x=world.data, y=ctry.scales, by.x = "admin", by.y="coded_country", all.x=TRUE)
 # world.data$n[is.na(world.data$n)] <- 0
@@ -164,12 +174,11 @@ ui <- dashboardPage(
         dashboardHeader(title = "PsyCorona Data Tool"),
         dashboardSidebar(
             sidebarMenu(
-                menuItem(
-                    "Info", tabName = "index", icon = icon("info")),
                 menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
                 menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
                 menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
-                menuItem("Data", tabName = "data", icon = icon("fas fa-share-square"), badgeLabel = "coming soon", badgeColor = "orange")
+                menuItem("Data", tabName = "data", icon = icon("fas fa-share-square"), badgeLabel = "coming soon", badgeColor = "orange"),
+                menuItem("About", tabName = "about", icon = icon("info"))
             )
         ),
         
@@ -193,71 +202,6 @@ ui <- dashboardPage(
                           ")),
             
             tabItems(
-                tabItem(tabName = "index",
-                        h3("Welcome to the PsyCorona Data Tool"),
-                        br(),
-                        fluidRow(
-                            box(#title = "Explore The Data", 
-                                width = 8, 
-                                heigth = "500px",
-                                solidHeader = TRUE,
-                                
-                                h4("The Initiative:"),
-                                #tags$b("The Project:"),
-                                " More than 100 international social scientists are working together to collect immediate and longitudinal information on 
-                                the key social science factors thatmight predict the spread of COVID-19. The project, known as",
-                                tags$a(href="https://www.psycorona.org", 
-                                       target="_blank",
-                                       "PsyCorona"),
-                                "will pair social and data scientists to connect data across multiple layers—individual survey reports from 10,000 participants 
-                                from more than 9 countries, satellite data documenting social distancing, and World Health Organization data on county level spread 
-                                of the disease.
-                                ",
-                                br(),
-                                "You can find the PsyCorona Collective on: ",
-                                tags$a(href="https://www.facebook.com/??/", 
-                                       target="_blank",
-                                       icon("facebook")),
-                                HTML("&nbsp"),
-                                tags$a(href="https://github.com/JannisCodes/PsyCorona-WebApp", 
-                                       target="_blank", 
-                                       icon("github")),
-                                br(),
-                                br(),
-                                h4("What You Can Do Here:"),
-                                "This applet has ",
-                                tags$b("four main interactive sections"),
-                                " that enable visitors to directly interact with the data: ",
-                                tags$ul(
-                                    tags$li("The ",
-                                            a("A section", onclick = "openTab('data')", href="#"),
-                                            ", which get's some A text")),
-                                "The remaining three tabs offer tools to visualize the data according to ... .",
-                                tags$ul(
-                                    tags$li("The ",
-                                            a("Our Sample", onclick = "openTab('sample')", href="#"),
-                                            " tab offers a ... ."),
-                                    tags$li("The ",
-                                            a("B section", onclick = "openTab('Variables')", href="#"),
-                                            " tab offers an interactive interface to explore .. ."),
-                                    tags$li("The ",
-                                            a("Development", onclick = "openTab('development')", href="#"),
-                                            " tab gives users the possibility to interactively explore data evolves over time ... .")
-                                )
-                                
-                            ),
-                            box(width = 4,
-                                "We will put some live ticker element here."
-                            #    HTML("<a class=\"twitter-timeline\" data-lang=\"en\" data-height=\"500\" href=\"https://twitter.com/ReMatriate?ref_src=twsrc%5Etfw\">Tweets by ReMatriate</a> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>")
-                            )
-                        ),
-                        fluidRow(
-                            valueBox(paste0(prettyNum(nrow(dt), big.mark=" ", scientific=FALSE), "+"), "Participants", icon = icon("user-edit"), width = 3),
-                            valueBox(paste0(length(unique(dt$language)),"+"), "Languages", icon = icon("language"), width = 3),
-                            valueBox("80+", "Researchesr", icon = icon("user-graduate"), width = 3),
-                            valueBox(404, "Something", icon = icon("project-diagram"), width = 3)
-                        )
-                ),
                 tabItem(tabName = "sample",
                         h3("Our Sample"),
                         fluidRow(
@@ -338,7 +282,26 @@ ui <- dashboardPage(
                                                 ),
                                        tabPanel("Community Response"),
                                        tabPanel("Behavioral Response"),
-                                       tabPanel("Emotional Response"),
+                                       tabPanel("Emotional Response",
+                                                sidebarLayout(
+                                                  sidebarPanel(
+                                                    multiInput(
+                                                      inputId = "sample_country_affect",
+                                                      label = "Countries:", 
+                                                      choices = NULL,
+                                                      choiceNames = lapply(seq_along(unique(overview$coded_country)), 
+                                                                           function(i) tagList(tags$img(src = unique(overview$flag)[i],
+                                                                                                        width = 20, 
+                                                                                                        height = 15), unique(overview$coded_country)[i])),
+                                                      choiceValues = unique(overview$coded_country),
+                                                      selected = NULL
+                                                      )
+                                                  ),
+                                                  mainPanel(
+                                                    chartJSRadarOutput('affect')
+                                                  )
+                                                )
+                                                ),
                                        tabPanel("Cross Domain Relationships")
                                        )
                             )
@@ -386,6 +349,71 @@ ui <- dashboardPage(
                         #                      "stuff for tab 2"
                         #             )
                         # )
+                ),
+                tabItem(tabName = "about",
+                        h3("Welcome to the PsyCorona Data Tool"),
+                        br(),
+                        fluidRow(
+                          box(#title = "Explore The Data", 
+                            width = 8, 
+                            heigth = "500px",
+                            solidHeader = TRUE,
+                            
+                            h4("The Initiative:"),
+                            #tags$b("The Project:"),
+                            " More than 100 international social scientists are working together to collect immediate and longitudinal information on 
+                                the key social science factors thatmight predict the spread of COVID-19. The project, known as",
+                            tags$a(href="https://www.psycorona.org", 
+                                   target="_blank",
+                                   "PsyCorona"),
+                            "will pair social and data scientists to connect data across multiple layers—individual survey reports from 10,000 participants 
+                                from more than 9 countries, satellite data documenting social distancing, and World Health Organization data on county level spread 
+                                of the disease.
+                                ",
+                            br(),
+                            "You can find the PsyCorona Collective on: ",
+                            tags$a(href="https://www.facebook.com/??/", 
+                                   target="_blank",
+                                   icon("facebook")),
+                            HTML("&nbsp"),
+                            tags$a(href="https://github.com/JannisCodes/PsyCorona-WebApp", 
+                                   target="_blank", 
+                                   icon("github")),
+                            br(),
+                            br(),
+                            h4("What You Can Do Here:"),
+                            "This applet has ",
+                            tags$b("four main interactive sections"),
+                            " that enable visitors to directly interact with the data: ",
+                            tags$ul(
+                              tags$li("The ",
+                                      a("A section", onclick = "openTab('data')", href="#"),
+                                      ", which get's some A text")),
+                            "The remaining three tabs offer tools to visualize the data according to ... .",
+                            tags$ul(
+                              tags$li("The ",
+                                      a("Our Sample", onclick = "openTab('sample')", href="#"),
+                                      " tab offers a ... ."),
+                              tags$li("The ",
+                                      a("B section", onclick = "openTab('Variables')", href="#"),
+                                      " tab offers an interactive interface to explore .. ."),
+                              tags$li("The ",
+                                      a("Development", onclick = "openTab('development')", href="#"),
+                                      " tab gives users the possibility to interactively explore data evolves over time ... .")
+                            )
+                            
+                          ),
+                          box(width = 4,
+                              "We will put some live ticker element here."
+                              #    HTML("<a class=\"twitter-timeline\" data-lang=\"en\" data-height=\"500\" href=\"https://twitter.com/ReMatriate?ref_src=twsrc%5Etfw\">Tweets by ReMatriate</a> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>")
+                          )
+                        ),
+                        fluidRow(
+                          valueBox(paste0(prettyNum(nrow(dt), big.mark=" ", scientific=FALSE), "+"), "Participants", icon = icon("user-edit"), width = 3),
+                          valueBox(paste0(length(unique(dt$language)),"+"), "Languages", icon = icon("language"), width = 3),
+                          valueBox("80+", "Researchesr", icon = icon("user-graduate"), width = 3),
+                          valueBox(404, "Something", icon = icon("project-diagram"), width = 3)
+                        )
                 )
             )
         )
@@ -422,9 +450,13 @@ server <- function(input, output, session) {
     })
     #Color schemes: https://carto.com/carto-colors/
     
-    output$mymap <- renderLeaflet({
-      leaflet(options = leafletOptions(crs = leafletCRS()))
-    })
+    output$affect <- renderChartJSRadar({
+      radar <- data.frame("label" = c("High Positive", "High Negative", "Low Positive", "Low Negative"), 
+                          t(ctry.scales %>%
+                              filter(coded_country %in% input$sample_country_affect) %>% 
+                              select(starts_with("aff"))))
+      names(radar) <- c("label", input$sample_country_affect)
+      chartJSRadar(radar, maxScale = 5, showToolTipLabel=TRUE, showLegend = F) })
     
     observeEvent(input$reset_input_ctry, {
       shinyjs::reset("country_controls")
