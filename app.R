@@ -35,7 +35,7 @@ library(rgeos)
 # R Studio Clean-Up
 cat("\014") # clear console
 rm(list=ls()) # clear workspace
-gc # garbage collector
+gc() # garbage collector
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # truncate data:
@@ -57,6 +57,17 @@ ctry.scales <- dt %>%
   group_by(coded_country) %>%
   dplyr::summarize(
     n = n(),
+    affAnx = mean(affAnx, na.rm = T),
+    affBor = mean(affBor, na.rm = T),
+    affCalm = mean(affCalm, na.rm = T),
+    affContent = mean(affContent, na.rm = T),
+    affDepr = mean(affDepr, na.rm = T),
+    affEnerg = mean(affEnerg, na.rm = T),
+    affExc = mean(affExc, na.rm = T),
+    affNerv = mean(affNerv, na.rm = T),
+    affExh = mean(affExh, na.rm = T),
+    affInsp = mean(affInsp, na.rm = T),
+    affRel = mean(affRel, na.rm = T),
     affHighPos = mean(affHighPos.m, na.rm = T),
     affHighNeg = mean(affHighNeg.m, na.rm = T),
     affLowPos = mean(affLowPos.m, na.rm = T),
@@ -279,12 +290,28 @@ ui <- dashboardPage(
                                                     "Nice Plot here"
                                                   )
                                                 )
-                                                ),
-                                       tabPanel("Community Response"),
-                                       tabPanel("Behavioral Response"),
+                                       ),
+                                       tabPanel("Community Response", 
+                                                "ext"
+                                       ),
+                                       tabPanel("Cognitive Response",
+                                                "boredom, Hope, Efficacy, Paranoia, Conspiracy, Financial strain(?), job insecurity (?)"
+                                       ),
+                                       tabPanel("Behavioral Response",
+                                                "isolation, beh"
+                                       ),
                                        tabPanel("Emotional Response",
                                                 sidebarLayout(
                                                   sidebarPanel(
+                                                    tags$b("Individual Emotions "),
+                                                    prettySwitch(
+                                                      inputId = "categorySwitch",
+                                                      label = tags$b("Emotional Categories"), 
+                                                      status = "success",
+                                                      fill = TRUE,
+                                                      inline = TRUE,
+                                                      value = TRUE
+                                                    ),
                                                     multiInput(
                                                       inputId = "sample_country_affect",
                                                       label = "Countries:", 
@@ -301,9 +328,10 @@ ui <- dashboardPage(
                                                     chartJSRadarOutput('affect')
                                                   )
                                                 )
-                                                ),
-                                       tabPanel("Cross Domain Relationships")
+                                       ),
+                                       tabPanel("Cross Domain Relationships"
                                        )
+                                  )
                             )
                         ),
                 tabItem(tabName = "development",
@@ -451,10 +479,27 @@ server <- function(input, output, session) {
     #Color schemes: https://carto.com/carto-colors/
     
     output$affect <- renderChartJSRadar({
-      radar <- data.frame("label" = c("High Positive", "High Negative", "Low Positive", "Low Negative"), 
-                          t(ctry.scales %>%
+      if (input$categorySwitch == TRUE) {
+        labs <- c("High Positive", "High Negative", "Low Positive", "Low Negative")
+        vars <- c("affHighPos", "affHighNeg", "affLowPos", "affLowNeg")
+      } else {
+        labs <- c("Energetic", "Inspired", "Excited", 
+                  "Nervous", "Anxious", 
+                  "Calm", "Content", "Relaxed", 
+                  "Bored", "Depressed", "Exhausted")
+        vars <- c("affEnerg", "affInsp", "affExc", 
+                  "affNerv", "affAnx", 
+                  "affCalm", "affContent", "affRel", 
+                  "affBor", "affDepr", "affExh")
+      }
+      
+      radar <- data.frame("label" = labs, 
+                          t(
+                            ctry.scales %>%
                               filter(coded_country %in% input$sample_country_affect) %>% 
-                              select(starts_with("aff"))))
+                              select(one_of(vars))
+                            )
+                          )
       names(radar) <- c("label", input$sample_country_affect)
       chartJSRadar(radar, maxScale = 5, showToolTipLabel=TRUE, showLegend = F) })
     
