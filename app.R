@@ -287,7 +287,7 @@ ui <- dashboardPage(
                                                     "Nice Controls here"
                                                     ),
                                                   mainPanel(
-                                                    "Nice Plot here"
+                                                    "extMsg"
                                                   )
                                                 )
                                        ),
