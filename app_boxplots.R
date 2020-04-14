@@ -56,10 +56,9 @@ dt <- readRDS("data/reducedData.rds")
 # add survey data to world map data
 ctry.scales <- dt %>%
   filter(!is.na(coded_country)) %>%
-  dplyr::group_by(coded_country) %>%
+  group_by(coded_country) %>%
   dplyr::summarize(
     n = n(),
-    
     affAnx = mean(affAnx, na.rm = T),
     affBor = mean(affBor, na.rm = T),
     affCalm = mean(affCalm, na.rm = T),
@@ -75,63 +74,22 @@ ctry.scales <- dt %>%
     affHighNeg = mean(affHighNeg.m, na.rm = T),
     affLowPos = mean(affLowPos.m, na.rm = T),
     affLowNeg = mean(affLowNeg.m, na.rm = T),
-    
     #ext = mean(ext.m, na.rm = T),
-    
     gov = mean(extC19Msg, na.rm = T),
-    gov.sd = sd(extC19Msg, na.rm = T),
-    gov.se = gov.sd/sqrt(n),
-    
     comRule = mean(extC19Rules, na.rm = T),
-    comRule.sd = sd(extC19Rules, na.rm = T),
-    comRule.se = comRule.sd/sqrt(n),
-    
     comPunish = mean(extC19Punish, na.rm = T),
-    comPunish.sd = sd(extC19Punish, na.rm = T),
-    comPunish.se = comPunish.sd/sqrt(n),
-    
     comOrg = mean(extC19Org, na.rm = T),
-    comOrg.sd = sd(extC19Org, na.rm = T),
-    comOrg.se = comOrg.sd/sqrt(n),
-    
     lone = mean(lone.m, na.rm = T),
-    lone.sd = sd(lone.m, na.rm = T),
-    lone.se = lone.sd/sqrt(n),
-    
     #bor = mean(bor.m, na.rm = T),
     isoPers = mean(isoPers.m, na.rm = T),
-    isoPers.sd = sd(isoPers.m, na.rm = T),
-    isoPers.se = isoPers.sd/sqrt(n),
-    
     isoOnl = mean(isoOnl.m, na.rm = T),
-    isoOnl.sd = sd(isoOnl.m, na.rm = T),
-    isoOnl.se = isoOnl.sd/sqrt(n),
-    
     #beh = mean(beh.m, na.rm = T),
     behWash = mean(c19perBeh01, na.rm = T),
-    behWash.sd = sd(c19perBeh01, na.rm = T),
-    behWash.se = behWash.sd/sqrt(n),
-    
     behAvoid = mean(c19perBeh02, na.rm = T),
-    behAvoid.sd = sd(c19perBeh02, na.rm = T),
-    behAvoid.se = behAvoid.sd/sqrt(n),
-    
-    covidHope = mean(c19Hope, na.rm = T),
-    covidHope.sd = sd(c19Hope, na.rm = T),
-    covidHope.se = covidHope.sd/sqrt(n),
-    
-    covidEff = mean(c19Eff, na.rm = T),
-    covidEff.sd = sd(c19Eff, na.rm = T),
-    covidEff.se = covidEff.sd/sqrt(n),
-    
+    c19Hope = mean(c19Hope, na.rm = T),
+    c19Eff = mean(c19Eff, na.rm = T),
     para = mean(para.m, na.rm = T),
-    para.sd = sd(para.m, na.rm = T),
-    para.se = para.sd/sqrt(n),
-    
     consp = mean(consp.m, na.rm = T),
-    consp.sd = sd(consp.m, na.rm = T),
-    consp.se = consp.sd/sqrt(n)
-    
     #jobinsec = mean(jobinsec.m, na.rm = T),
     #pfs = mean(pfs.m, na.rm = T),
   )
@@ -142,7 +100,6 @@ global.scales <- dt %>%
   dplyr::summarize(
     coded_country = "global",
     n = n(),
-    
     affAnx = mean(affAnx, na.rm = T),
     affBor = mean(affBor, na.rm = T),
     affCalm = mean(affCalm, na.rm = T),
@@ -158,65 +115,22 @@ global.scales <- dt %>%
     affHighNeg = mean(affHighNeg.m, na.rm = T),
     affLowPos = mean(affLowPos.m, na.rm = T),
     affLowNeg = mean(affLowNeg.m, na.rm = T),
-    
     #ext = mean(ext.m, na.rm = T),
-    
     gov = mean(extC19Msg, na.rm = T),
-    gov.sd = sd(extC19Msg, na.rm = T),
-    gov.se = gov.sd/sqrt(n),
-    
     comRule = mean(extC19Rules, na.rm = T),
-    comRule.sd = sd(extC19Rules, na.rm = T),
-    comRule.se = comRule.sd/sqrt(n),
-    
     comPunish = mean(extC19Punish, na.rm = T),
-    comPunish.sd = sd(extC19Punish, na.rm = T),
-    comPunish.se = comPunish.sd/sqrt(n),
-    
     comOrg = mean(extC19Org, na.rm = T),
-    comOrg.sd = sd(extC19Org, na.rm = T),
-    comOrg.se = comOrg.sd/sqrt(n),
-    
     lone = mean(lone.m, na.rm = T),
-    lone.sd = sd(lone.m, na.rm = T),
-    lone.se = lone.sd/sqrt(n),
-    
     #bor = mean(bor.m, na.rm = T),
     isoPers = mean(isoPers.m, na.rm = T),
-    isoPers.sd = sd(isoPers.m, na.rm = T),
-    isoPers.se = isoPers.sd/sqrt(n),
-    
     isoOnl = mean(isoOnl.m, na.rm = T),
-    isoOnl.sd = sd(isoOnl.m, na.rm = T),
-    isoOnl.se = isoOnl.sd/sqrt(n),
-    
     #beh = mean(beh.m, na.rm = T),
     behWash = mean(c19perBeh01, na.rm = T),
-    behWash.sd = sd(c19perBeh01, na.rm = T),
-    behWash.se = behWash.sd/sqrt(n),
-    
     behAvoid = mean(c19perBeh02, na.rm = T),
-    behAvoid.sd = sd(c19perBeh02, na.rm = T),
-    behAvoid.se = behAvoid.sd/sqrt(n),
-    
-    covidHope = mean(c19Hope, na.rm = T),
-    covidHope.sd = sd(c19Hope, na.rm = T),
-    covidHope.se = covidHope.sd/sqrt(n),
-    
-    covidEff = mean(c19Eff, na.rm = T),
-    covidEff.sd = sd(c19Eff, na.rm = T),
-    covidEff.se = covidEff.sd/sqrt(n),
-    
+    c19Hope = mean(c19Hope, na.rm = T),
+    c19Eff = mean(c19Eff, na.rm = T),
     para = mean(para.m, na.rm = T),
-    para.sd = sd(para.m, na.rm = T),
-    para.se = para.sd/sqrt(n),
-    
     consp = mean(consp.m, na.rm = T),
-    consp.sd = sd(consp.m, na.rm = T),
-    consp.se = consp.sd/sqrt(n),
-    
-    #jobinsec = mean(jobinsec.m, na.rm = T),
-    #pfs = mean(pfs.m, na.rm = T),
     #jobinsec = mean(jobinsec.m, na.rm = T),
     #pfs = mean(pfs.m, na.rm = T),
     iso_a2 = NA,
@@ -224,132 +138,54 @@ global.scales <- dt %>%
   )
 ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
 
-languages <- dt %>% 
-  select(coded_country, language) %>%
-  group_by(language, coded_country) %>%
-  tally() %>%
-  tidyr::spread(language, n)
-languages.glob <- dt %>%
-  select(language) %>%
-  mutate(coded_country = "global") %>%
-  group_by(language, coded_country) %>%
-  tally() %>%
-  tidyr::spread(language, n)
-languages <- rbind(languages.glob, languages); rm(languages.glob)
-names(languages)[names(languages) != "coded_country"] = paste0("languages_", names(languages)[names(languages) != "coded_country"])
-
-gender <- data.frame(coded_country = dt$coded_country, 
-                     gender = as_factor(dt$gender)) %>%
-  group_by(gender, coded_country) %>%
-  tally() %>%
-  tidyr::spread(gender, n)
-gender.glob <- data.frame(coded_country = "global", 
-                             gender = as_factor(dt$gender)) %>%
-  group_by(gender, coded_country) %>%
-  tally() %>%
-  tidyr::spread(gender, n)
-gender <- rbind(gender.glob, gender); rm(gender.glob)
-names(gender)[names(gender) != "coded_country"] = paste0("gender_", names(gender)[names(gender) != "coded_country"])
-
-age <- data.frame(coded_country = dt$coded_country, 
-                  age = as_factor(dt$age)) %>%
-  group_by(age, coded_country) %>%
-  tally() %>%
-  tidyr::spread(age, n)
-age.glob <- data.frame(coded_country = "global",
-                       age = as_factor(dt$age)) %>%
-  group_by(age, coded_country) %>%
-  tally() %>%
-  tidyr::spread(age, n)
-age <- rbind(age.glob, age); rm(age.glob)
-names(age)[names(age) != "coded_country"] = paste0("age_", names(age)[names(age) != "coded_country"])
-
-edu <- data.frame(coded_country = dt$coded_country, 
-                  edu = as_factor(dt$edu)) %>%
-  group_by(edu, coded_country) %>%
-  tally() %>%
-  tidyr::spread(edu, n)
-edu.glob <- data.frame(coded_country = "global", 
-                       edu = as_factor(dt$edu)) %>%
-  group_by(edu, coded_country) %>%
-  tally() %>%
-  tidyr::spread(edu, n)
-edu <- rbind(edu.glob, edu); rm(edu.glob)
-names(edu)[names(edu) != "coded_country"] = paste0("education_", names(edu)[names(edu) != "coded_country"])
-
-pol <- dt %>%
-  select(coded_country, PolOrCat) %>%
-  mutate(PolOrCat = na_if(PolOrCat, "Libertarian LeftLibertarian Right")) %>%
-  mutate(PolOrCat = na_if(PolOrCat, "Authoritarian RightLibertarian Right")) %>%
-  group_by(PolOrCat, coded_country) %>%
-  tally() %>%
-  tidyr::spread(PolOrCat, n)
-pol.glob <- dt %>%
-  select(PolOrCat) %>%
-  mutate(PolOrCat = na_if(PolOrCat, "Libertarian LeftLibertarian Right")) %>%
-  mutate(PolOrCat = na_if(PolOrCat, "Authoritarian RightLibertarian Right")) %>%
-  mutate(coded_country = "global") %>%
-  group_by(PolOrCat, coded_country) %>%
-  tally() %>%
-  tidyr::spread(PolOrCat, n)
-pol <- rbind(pol.glob, pol); rm(pol.glob)
-names(pol)[names(pol) != "coded_country"] = paste0("political_", names(pol)[names(pol) != "coded_country"])
-
-#ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
-ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
-ctry.scales <- plyr::join(x=ctry.scales, y=gender, by="coded_country")
-ctry.scales <- plyr::join(x=ctry.scales, y=age, by="coded_country")
-ctry.scales <- plyr::join(x=ctry.scales, y=edu, by="coded_country")
-ctry.scales <- plyr::join(x=ctry.scales, y=pol, by="coded_country")
-
 # world.data <- merge(x=world.data, y=ctry.scales, by.x = "admin", by.y="coded_country", all.x=TRUE)
 # # world.data$n[is.na(world.data$n)] <- 0
 world.n <- ctry.scales %>% dplyr::select(coded_country, iso_a2, n)
-# #world.cog <- world.data %>% dplyr::dplyr::select(admin, iso_a2, covidHope, covidEff, lone, para, consp)
+# #world.cog <- world.data %>% dplyr::dplyr::select(admin, iso_a2, c19Hope, c19Eff, lone, para, consp)
 
-# cognitive <- rbind(data.frame(coded_country = "global",
-#                               covidHope = as.numeric(dt$c19Hope), 
-#                               covidEff = as.numeric(dt$c19Eff), 
-#                               lone = as.numeric(dt$lone.m), 
-#                               para = as.numeric(dt$para.m), 
-#                               consp = as.numeric(dt$consp.m)),
-#                    data.frame(coded_country = as.character(dt$coded_country),
-#                               covidHope = as.numeric(dt$c19Hope), 
-#                               covidEff = as.numeric(dt$c19Eff), 
-#                               lone = as.numeric(dt$lone.m), 
-#                               para = as.numeric(dt$para.m), 
-#                               consp = as.numeric(dt$consp.m)))
-# government <- rbind(data.frame(coded_country = "global",
-#                                gov = as.numeric(dt$extC19Msg)),
-#                     data.frame(coded_country = as.character(dt$coded_country),
-#                                gov = as.numeric(dt$extC19Msg)))
+cognitive <- rbind(data.frame(coded_country = "global",
+                              c19Hope = as.numeric(dt$c19Hope), 
+                              c19Eff = as.numeric(dt$c19Eff), 
+                              lone = as.numeric(dt$lone.m), 
+                              para = as.numeric(dt$para.m), 
+                              consp = as.numeric(dt$consp.m)),
+                   data.frame(coded_country = as.character(dt$coded_country),
+                              c19Hope = as.numeric(dt$c19Hope), 
+                              c19Eff = as.numeric(dt$c19Eff), 
+                              lone = as.numeric(dt$lone.m), 
+                              para = as.numeric(dt$para.m), 
+                              consp = as.numeric(dt$consp.m)))
+government <- rbind(data.frame(coded_country = "global",
+                               gov = as.numeric(dt$extC19Msg)),
+                    data.frame(coded_country = as.character(dt$coded_country),
+                               gov = as.numeric(dt$extC19Msg)))
 #gov.box$global <- boxplot.stats(as.numeric(dt$extC19Msg))
-# test <- government %>%
-#   group_by(coded_country) %>%
-#   summarise(boxplot= list(setNames(boxplot.stats(gov)$stats,
-#                                    c('lower_whisker','lower_hinge','median','upper_hinge','upper_whisker')))) %>%
-#   unnest_wider(boxplot)
+test <- government %>%
+  group_by(coded_country) %>%
+  summarise(boxplot= list(setNames(boxplot.stats(gov)$stats,
+                                   c('lower_whisker','lower_hinge','median','upper_hinge','upper_whisker')))) %>%
+  unnest_wider(boxplot)
 
-# community <- rbind(data.frame(coded_country = "global",
-#                               extC19Rules = as.numeric(dt$extC19Rules), 
-#                               extC19Punish = as.numeric(dt$extC19Punish), 
-#                               extC19Org = as.numeric(dt$extC19Org)),
-#                    data.frame(coded_country = as.character(dt$coded_country),
-#                               extC19Rules = as.numeric(dt$extC19Rules), 
-#                               extC19Punish = as.numeric(dt$extC19Punish), 
-#                               extC19Org = as.numeric(dt$extC19Org)))
-# behavior <- rbind(data.frame(coded_country = "global",
-#                              wash = as.numeric(dt$c19perBeh01),
-#                              avoid = as.numeric(dt$c19perBeh02),
-#                              #quarantine = as.numeric(dt$c19perBeh03),
-#                              isoPers = as.numeric(dt$isoPers.m),
-#                              isoOnl = as.numeric(dt$isoOnl.m)),
-#                   data.frame(coded_country = as.character(dt$coded_country),
-#                              wash = as.numeric(dt$c19perBeh01),
-#                              avoid = as.numeric(dt$c19perBeh02),
-#                              #quarantine = as.numeric(dt$c19perBeh03),
-#                              isoPers = as.numeric(dt$isoPers.m),
-#                              isoOnl = as.numeric(dt$isoOnl.m)))
+community <- rbind(data.frame(coded_country = "global",
+                              extC19Rules = as.numeric(dt$extC19Rules), 
+                              extC19Punish = as.numeric(dt$extC19Punish), 
+                              extC19Org = as.numeric(dt$extC19Org)),
+                   data.frame(coded_country = as.character(dt$coded_country),
+                              extC19Rules = as.numeric(dt$extC19Rules), 
+                              extC19Punish = as.numeric(dt$extC19Punish), 
+                              extC19Org = as.numeric(dt$extC19Org)))
+behavior <- rbind(data.frame(coded_country = "global",
+                             wash = as.numeric(dt$c19perBeh01),
+                             avoid = as.numeric(dt$c19perBeh02),
+                             #quarantine = as.numeric(dt$c19perBeh03),
+                             isoPers = as.numeric(dt$isoPers.m),
+                             isoOnl = as.numeric(dt$isoOnl.m)),
+                  data.frame(coded_country = as.character(dt$coded_country),
+                             wash = as.numeric(dt$c19perBeh01),
+                             avoid = as.numeric(dt$c19perBeh02),
+                             #quarantine = as.numeric(dt$c19perBeh03),
+                             isoPers = as.numeric(dt$isoPers.m),
+                             isoOnl = as.numeric(dt$isoOnl.m)))
 
 ctry.red <- ctry.scales %>%
   filter(n >= 20) %>% #, coded_country != "global"
@@ -358,15 +194,15 @@ ctry.only.red <- ctry.scales %>%
   filter(n >= 20, coded_country != "global") %>% #, coded_country != "global"
   dplyr::select(coded_country, n, flag)
 
-# overview <- data.frame(language = as.character(dt$language), 
-#                        gender = as.character(as_factor(dt$gender)), 
-#                        age = as.character(as_factor(dt$age)), 
-#                        education = as.character(as_factor(dt$edu)),
-#                        political = as.character(dt$PolOrCat) %>% 
-#                          str_replace_all(c("Libertarian LeftLibertarian Right" = NA_character_)) %>%
-#                          str_replace_all(c("Authoritarian RightLibertarian Right" = NA_character_)),
-#                        coded_country = as.character(dt$coded_country),
-#                        flag = as.character(dt$flag))
+overview <- data.frame(language = as.character(dt$language), 
+                       gender = as.character(as_factor(dt$gender)), 
+                       age = as.character(as_factor(dt$age)), 
+                       education = as.character(as_factor(dt$edu)),
+                       political = as.character(dt$PolOrCat) %>% 
+                         str_replace_all(c("Libertarian LeftLibertarian Right" = NA_character_)) %>%
+                         str_replace_all(c("Authoritarian RightLibertarian Right" = NA_character_)),
+                       coded_country = as.character(dt$coded_country),
+                       flag = as.character(dt$flag))
 
 r2d3_script <- "
 // !preview r2d3 data= data.frame(y = 0.1, ylabel = '1%', fill = '#E69F00', mouseover = 'green', label = 'one', id = 1)
@@ -437,8 +273,6 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
 r2d3_file <- tempfile()
 writeLines(r2d3_script, r2d3_file)
 
-
-
 ui <- dashboardPage(
   title = "Psycorona Campaign: Data Tool",
   dashboardHeader(title = "PsyCorona Data Tool"),
@@ -480,11 +314,11 @@ ui <- dashboardPage(
                       inputId = "var", 
                       label = "Participant characteristics:", 
                       #choices = c("language", "gender", "age", "education", "political"), 
-                      selected = "languages",
+                      selected = "language",
                       justified = TRUE, 
                       status = "primary",
                       choiceNames = c("Survey language", "Gender", "Age", "Education", "Political orientation"),
-                      choiceValues = c("languages", "gender", "age", "education", "political")
+                      choiceValues = c("language", "gender", "age", "education", "political")
                       #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                     ),
                     h3(textOutput("sample.bar.NA"), align = "center"),
@@ -509,32 +343,17 @@ ui <- dashboardPage(
                   #"Use these controls to ",
                   #br(), 
                   
-                  # multiInput(
-                  #   inputId = "sample_country_selection",
-                  #   label = "Countries:", 
-                  #   choices = NULL,
-                  #   choiceNames = lapply(seq_along(unique(na.omit(overview$coded_country))), 
-                  #                        function(i) tagList(tags$img(src = unique(na.omit(overview$flag))[i],
-                  #                                                     width = 20, 
-                  #                                                     height = 15), unique(na.omit(overview$coded_country))[i])),
-                  #   choiceValues = unique(na.omit(overview$coded_country)),
-                  #   selected = unique(na.omit(overview$coded_country))
-                  # ),
-                  
                   multiInput(
                     inputId = "sample_country_selection",
-                    label = "Countries (all countries n > 20):", 
+                    label = "Countries:", 
                     choices = NULL,
-                    choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
-                                         function(i) tagList(tags$img(src = ctry.only.red$flag[i],
+                    choiceNames = lapply(seq_along(unique(na.omit(overview$coded_country))), 
+                                         function(i) tagList(tags$img(src = unique(na.omit(overview$flag))[i],
                                                                       width = 20, 
-                                                                      height = 15), 
-                                                             ctry.only.red$coded_country[i],
-                                                             paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
-                    choiceValues = ctry.only.red$coded_country,
-                    selected = ctry.only.red$coded_country
+                                                                      height = 15), unique(na.omit(overview$coded_country))[i])),
+                    choiceValues = unique(na.omit(overview$coded_country)),
+                    selected = unique(na.omit(overview$coded_country))
                   ),
-                  
                   hr(),
                   
                   div(style="display:inline-block;width:100%;text-align: center;",
@@ -566,17 +385,6 @@ ui <- dashboardPage(
                              ),
                              tabPanel("Community Response", 
                                       value = 2,
-                                      radioGroupButtons(
-                                        inputId = "ComVars", 
-                                        #label = "", 
-                                        #choices = c("language", "gender", "age", "education", "political"), 
-                                        selected = "comRule",
-                                        justified = TRUE, 
-                                        status = "primary",
-                                        choiceNames = c("Rules", "Punishment", "Organization"),
-                                        choiceValues = c("comRule", "comPunish", "comOrg")
-                                        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
-                                      ),
                                       highchartOutput("boxCom")
                              ),
                              tabPanel("Cognitive Response",
@@ -587,18 +395,7 @@ ui <- dashboardPage(
                              tabPanel("Behavioral Response",
                                       value = 4,
                                       #"isolation, beh",
-                                      htmlOutput("boxBeh"),
-                                      radioGroupButtons(
-                                        inputId = "BehVars", 
-                                        label = "Variable:", 
-                                        #choices = c("language", "gender", "age", "education", "political"), 
-                                        selected = "behWash",
-                                        justified = TRUE, 
-                                        status = "primary",
-                                        choiceNames = c("Washing", "Avoiding", "Social Contact"),
-                                        choiceValues = c("behWash", "behAvoid", "iso")
-                                        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
-                                      )
+                                      htmlOutput("boxBeh")
                              ),
                              tabPanel("Emotional Response",
                                       value = 5,
@@ -645,7 +442,7 @@ ui <- dashboardPage(
                        choices = list(
                          Government = c("Clear Government Information" = "gov"),
                          Community = c("Rules"="comRule", "Punishment"="comPunish", "Organization"="comOrg"),
-                         Cognitive = c("Hope"="covidHope", "Efficacy"="covidEff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
+                         Cognitive = c("Hope"="c19Hope", "Efficacy"="c19Eff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
                          Behavior = c("Washing"="behWash", "Avoiding"="behAvoid", "Isolation Offline"="isoPers", "Isolation Online"="isoOnl"),
                          Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Content"="affContent", "Depressed"="affDepr", "Energetic"="affEnerg", 
                                      "Excited"="affExc", "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel"),
@@ -662,7 +459,7 @@ ui <- dashboardPage(
                        choices = list(
                          Government = c("Clear Government Information" = "gov"),
                          Community = c("Rules"="comRule", "Punishment"="comPunish", "Organization"="comOrg"),
-                         Cognitive = c("Hope"="covidHope", "Efficacy"="covidEff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
+                         Cognitive = c("Hope"="c19Hope", "Efficacy"="c19Eff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
                          Behavior = c("Washing"="behWash", "Avoiding"="behAvoid", "Isolation Offline"="isoPers", "Isolation Online"="isoOnl"),
                          Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Content"="affContent", "Depressed"="affDepr", "Energetic"="affEnerg", 
                                      "Excited"="affExc", "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel"),
@@ -867,20 +664,12 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   
   output$sample.bar.NA <- renderText({
-    #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
-    
-    test <- ctry.scales %>%
+    test <- overview %>%
       filter(coded_country %in% input$sample_country_selection) %>%
-      select(starts_with(input$var)) %>%
-      t() %>%
-      as.data.frame()
-    colnames(test) <- input$sample_country_selection
-    test <- test %>%
-      mutate(n = rowSums(., na.rm=TRUE),
-             label = str_replace(rownames(.), ".*_", "")) %>%
-      filter(n>0,
-             label != "<NA>")
-    
+      mutate(label = !!sym(input$var)) %>%
+      group_by(label) %>%
+      tally() %>%
+      na.omit() 
     ifelse(sum(test$n)<20, "Not enough data to display summary","")
   })
   
@@ -888,39 +677,20 @@ server <- function(input, output, session) {
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     #input <- list(var = "gender", sample_country_selection = c("Poland", "Romania", "Albania"))
     
-    # overview %>%
-    #   filter(coded_country %in% input$sample_country_selection) %>%
-    #   mutate(label = !!sym(input$var)) %>%
-    #   group_by(label) %>%
-    #   tally() %>%
-    #   arrange(desc(n)) %>%
-    #   na.omit() %>%
-    #   filter(sum(n)>=20) %>%
-    #   mutate(
-    #     y = n,
-    #     ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
-    #     fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
-    #     mouseover = "#2a5674"
-    #   ) %>%
-    #   r2d3(r2d3_file)
-    
-    dem <- ctry.scales %>%
+    overview %>%
       filter(coded_country %in% input$sample_country_selection) %>%
-      select(starts_with(input$var)) %>%
-      t() %>%
-      as.data.frame()
-    colnames(dem) <- input$sample_country_selection
-    dem %>%
-      mutate(n = rowSums(., na.rm=TRUE),
-             label = str_replace(rownames(.), ".*_", "")) %>%
+      mutate(label = !!sym(input$var)) %>%
+      group_by(label) %>%
+      tally() %>%
       arrange(desc(n)) %>%
-      filter(n > 0,
-             label != "<NA>",
-             sum(n)>=20) %>%
-      mutate(y = n,
-             ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
-             fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
-             mouseover = "#2a5674") %>%
+      na.omit() %>%
+      filter(sum(n)>=20) %>%
+      mutate(
+        y = n,
+        ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
+        fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
+        mouseover = "#2a5674"
+      ) %>%
       r2d3(r2d3_file)
   })
   
@@ -939,42 +709,18 @@ server <- function(input, output, session) {
   
   output$boxGov <- renderHighchart({
     # for testing:
-    # input = list(psych_country_selection = c("global"))
+    # input = list(gov_country_selection = c("Germany", "France"))
     
-    # governmentRed <- government %>%
-    #   filter(coded_country %in% input$psych_country_selection,
-    #          !is.na(gov))
-    
-    governmentRed <- ctry.scales %>%
-      select(coded_country, starts_with("gov")) %>%
-      filter(coded_country %in% input$psych_country_selection) %>%
-      mutate(mean = gov,
-             low = gov-1.96*gov.se,
-             high = gov+1.96*gov.se) %>% 
-      arrange(desc(mean))
-    
-    tooltipJS <- paste0("function(){
-                      return ('Country: ' + this.point.coded_country + 
-                      ' <br> Mean: ' + Math.round((this.point.mean + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Lower Limit: ' + Math.round((this.point.low + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Upper Limit: ' + Math.round((this.point.high + Number.EPSILON) * 100) / 100)
-                      }")
+    governmentRed <- government %>%
+      filter(coded_country %in% input$psych_country_selection,
+             !is.na(gov))
     
     categories <- c("0" , "1<br>unclear", "2", "3", "4", "5", "6<br>clear")
     
-    highchart() %>% 
-      hc_chart(type = "bar") %>% 
-      hc_add_series(governmentRed, "errorbar", 
-                    hcaes(x = coded_country, low = low, high = high),
-                    color = "#3b738f") %>% 
-      hc_add_series(governmentRed, "scatter",
-                    hcaes(x = coded_country, y = mean),
-                    color = "#3b738f",
-                    marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                    animation = list(duration = 1900),
-                    showInLegend = FALSE) %>%
+    hcboxplot(x = governmentRed$gov, var = governmentRed$coded_country,
+              color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
+              allowPointSelect = T, outliers = T) %>% 
       hc_title(text = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus?") %>%
-      hc_xAxis(categories = as.list(governmentRed$coded_country)) %>%
       hc_yAxis(showFirstLabel = T,
                showLastLabel = T,
                min = 1,
@@ -984,52 +730,33 @@ server <- function(input, output, session) {
                #rotation = 0,
                categories = categories,
                #align = "center",
-               tickmarkPlacement = seq(1,6,1)) %>%
-      hc_tooltip(formatter = JS(tooltipJS))
+               tickmarkPlacement = seq(1,6,1))
+    
+    
     
   })
   
   output$boxCom <- renderHighchart({
     # for testing:
-    # input = list(ComVars = "comRule", psych_country_selection = c("Germany", "France"))
+    # input = list(CogVars = "c19Hope", cog_country_selection = c("Germany", "France"))
     
-    communityRed <- ctry.scales %>%
+    communityRed <- community %>%
       dplyr::select(coded_country, 
-                    n,
-                    mean = one_of(input$ComVars),
-                    #sd = one_of(paste0(input$ComVars,".sd")),
-                    se = one_of(paste0(input$ComVars,".se"))) %>%
-      filter(coded_country %in% input$psych_country_selection) %>%
-      mutate(low = mean - qt(1 - (0.05 / 2), n - 1) * se,
-             high = mean + qt(1 - (0.05 / 2), n - 1) * se) %>% 
-      arrange(desc(mean))
-    
-    tooltipJS <- paste0("function(){
-                      return ('Country: ' + this.point.coded_country + 
-                      ' <br> Mean: ' + Math.round((this.point.mean + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Lower Limit: ' + Math.round((this.point.low + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Upper Limit: ' + Math.round((this.point.high + Number.EPSILON) * 100) / 100)
-                      }")
-    
-    title.txt <- list(comRule = "To what extent is your commmunity developing strict rules in response to the Coronavirus?", 
-                      comPunish = "To what extent is your commmunity punishing people who deviate from the rules that have been put in place in response to the Coronavirus?", 
-                      comOrg = "To what extent is your commmunity well organized in responding to the Coronavirus?")
+                    label = one_of(input$ComVars)) %>%
+      filter(coded_country %in% input$psych_country_selection,
+             !is.na(label))
+    title.txt <- list(extC19Rules = "To what extent is your commmunity developing strict rules in response to the Coronavirus?", 
+                      extC19Punish = "To what extent is your commmunity punishing people who deviate from the rules that have been put in place in response to the Coronavirus?", 
+                      extC19Org = "To what extent is your commmunity well organized in responding to the Coronavirus?")
     
     categories <- c("0" , "1<br>not at all", "2", "3", "4", "5", "6<br>very much")
     
-    highchart() %>% 
-      hc_chart(type = "bar") %>% 
-      hc_add_series(communityRed, "errorbar", 
-                    hcaes(x = coded_country, low = low, high = high),
-                    color = "#3b738f") %>% 
-      hc_add_series(communityRed, "scatter",
-                    hcaes(x = coded_country, y = mean),
-                    color = "#3b738f",
-                    marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                    animation = list(duration = 1900),
-                    showInLegend = FALSE) %>%
+    
+    hcboxplot(x = communityRed$label, var = communityRed$coded_country,
+              color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
+              allowPointSelect = T,
+              outliers = T) %>%
       hc_title(text = title.txt[[input$ComVars]]) %>% 
-      hc_xAxis(categories = as.list(communityRed$coded_country)) %>%
       hc_yAxis(showFirstLabel = T,
                showLastLabel = T,
                min = 1,
@@ -1039,61 +766,47 @@ server <- function(input, output, session) {
                #rotation = 0,
                categories = categories,
                #align = "center",
-               tickmarkPlacement = seq(1,6,1)) %>%
-      hc_tooltip(formatter = JS(tooltipJS))
-    
+               tickmarkPlacement = seq(1,6,1))
   })
   
   output$boxCog <- renderHighchart({
     # for testing:
-    # input = list(CogVars = "covidHope", cog_country_selection = c("Germany", "France"))
+    # input = list(CogVars = "c19Hope", cog_country_selection = c("Germany", "France"))
     
-    cognitiveRed <- ctry.scales %>%
+    cognitiveRed <- cognitive %>%
       dplyr::select(coded_country, 
-                    n,
-                    mean = one_of(input$CogVars),
-                    #sd = one_of(paste0(input$ComVars,".sd")),
-                    se = one_of(paste0(input$CogVars,".se"))) %>%
-      filter(coded_country %in% input$psych_country_selection) %>%
-      mutate(low = mean - qt(1 - (0.05 / 2), n - 1) * se,
-             high = mean + qt(1 - (0.05 / 2), n - 1) * se) %>% 
-      arrange(desc(mean))
+                    label = one_of(input$CogVars)) %>%
+      filter(coded_country %in% input$psych_country_selection,
+             !is.na(label))
     
-    tooltipJS <- paste0("function(){
-                      return ('Country: ' + this.point.coded_country + 
-                      ' <br> Mean: ' + Math.round((this.point.mean + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Lower Limit: ' + Math.round((this.point.low + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Upper Limit: ' + Math.round((this.point.high + Number.EPSILON) * 100) / 100)
-                      }")
-    
-    title.txt <- list(covidHope = "I have high hopes that the situation regarding coronavirus will improve.", 
-                      covidEff = "I think that this country is able to fight the Coronavirus.",
+    title.txt <- list(c19Hope = "I have high hopes that the situation regarding coronavirus will improve.", 
+                      c19Eff = "I think that this country is able to fight the Coronavirus.",
                       lone = "Mean Loneliness Scores",
                       para = "Mean State Paranoia Scores",
                       consp = "Mean Conspiracy Scores")
-    y.min <- list(covidHope = -3, 
-                  covidEff = -3,
+    y.min <- list(c19Hope = -3, 
+                  c19Eff = -3,
                   lone = 1,
                   para = 0,
                   consp = 0)
-    y.max <- list(covidHope = 3, 
-                  covidEff = 3,
+    y.max <- list(c19Hope = 3, 
+                  c19Eff = 3,
                   lone = 5,
                   para = 10,
                   consp = 10)
-    lab.ticks <- list(covidHope = c("0"), 
-                      covidEff = c("0"), 
+    lab.ticks <- list(c19Hope = c("0"), 
+                      c19Eff = c("0"), 
                       lone = c("0"),
                       para = c("0"),
                       consp = c("0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"))
-    lab.breaks <- list(covidHope = seq(0,7,1), 
-                       covidEff = seq(0,7,1), 
+    lab.breaks <- list(c19Hope = seq(0,7,1), 
+                       c19Eff = seq(0,7,1), 
                        lone = seq(1,5,1),
                        para = seq(0,10,1),
                        consp = seq(0,10,1))
     
-    lab.ends <- list(covidHope = c("-3<br>disagree", "3<br>agree"), 
-                     covidEff = c("-3<br>disagree", "3<br>agree"), 
+    lab.ends <- list(c19Hope = c("-3<br>disagree", "3<br>agree"), 
+                     c19Eff = c("-3<br>disagree", "3<br>agree"), 
                      lone = c("1<br>Never", "5<br>All the time"),
                      para = c("0<br>Not at all", "10<br>Very much"),
                      consp = c("0%", "100%"))
@@ -1108,19 +821,13 @@ server <- function(input, output, session) {
                                         }
                                         }")
     
-    highchart() %>% 
-      hc_chart(type = "bar") %>% 
-      hc_add_series(cognitiveRed, "errorbar", 
-                    hcaes(x = coded_country, low = low, high = high),
-                    color = "#3b738f") %>% 
-      hc_add_series(cognitiveRed, "scatter",
-                    hcaes(x = coded_country, y = mean),
-                    color = "#3b738f",
-                    marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                    animation = list(duration = 1900),
-                    showInLegend = FALSE) %>%
-      hc_title(text = title.txt[[input$CogVars]]) %>% 
-      hc_xAxis(categories = as.list(cognitiveRed$coded_country)) %>%
+    hcboxplot(x = cognitiveRed$label, var = cognitiveRed$coded_country,
+              color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
+              allowPointSelect = T,
+              outliers = T) %>%
+      #hc_add_series_labels_values(labels = lab.ticks[[input$CogVars]],
+      #                            values = lab.breaks[[input$CogVars]])
+      hc_title(text = title.txt[[input$CogVars]]) %>%
       hc_yAxis(showFirstLabel = T,
                showLastLabel = T,
                min = y.min[[input$CogVars]],
@@ -1131,8 +838,7 @@ server <- function(input, output, session) {
                #rotation = 0,
                categories = lab.ticks[[input$CogVars]],
                #align = "center",
-               tickmarkPlacement = lab.breaks[[input$CogVars]]) %>%
-      hc_tooltip(formatter = JS(tooltipJS))
+               tickmarkPlacement = lab.breaks[[input$CogVars]])
   })
   
   output$boxBeh <- renderUI({
@@ -1140,125 +846,49 @@ server <- function(input, output, session) {
     # input = list(BehVars = "avoid", beh_country_selection = c("Germany", "France"))
     
     if (input$BehVars == "iso") {
-      # behaviorRedIso <- behavior %>%
-      #   dplyr::select(coded_country, 
-      #                 isoPers, isoOnl) %>%
-      #   filter(coded_country %in% input$psych_country_selection)
-      
-      behaviorRedIso <- ctry.scales %>%
+      behaviorRedIso <- behavior %>%
         dplyr::select(coded_country, 
-                      n,
-                      isoPers,
-                      isoOnl,
-                      isoPers.se,
-                      isoOnl.se) %>%
-        filter(coded_country %in% input$psych_country_selection) %>%
-        mutate(lowPers = isoPers - qt(1 - (0.05 / 2), n - 1) * isoPers.se,
-               highPers = isoPers + qt(1 - (0.05 / 2), n - 1) * isoPers.se,
-               lowOnl = isoOnl - qt(1 - (0.05 / 2), n - 1) * isoOnl.se,
-               highOnl = isoOnl + qt(1 - (0.05 / 2), n - 1) * isoOnl.se) %>% 
-        arrange(desc(isoPers))
-      
-      tooltipJSPers <- paste0("function(){
-                      return ('Country: ' + this.point.coded_country + 
-                      ' <br> Mean: ' + Math.round((this.point.isoPers + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Lower Limit: ' + Math.round((this.point.lowPers + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Upper Limit: ' + Math.round((this.point.highPers + Number.EPSILON) * 100) / 100)
-                      }")
-      tooltipJSOnl <- paste0("function(){
-                      return ('Country: ' + this.point.coded_country + 
-                      ' <br> Mean: ' + Math.round((this.point.isoOnl + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Lower Limit: ' + Math.round((this.point.lowOnl + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Upper Limit: ' + Math.round((this.point.highOnl + Number.EPSILON) * 100) / 100)
-                      }")
+                      isoPers, isoOnl) %>%
+        filter(coded_country %in% input$psych_country_selection)
       
       
-      # hcPers <- hcboxplot(x = behaviorRedIso$isoPers, var = behaviorRedIso$coded_country,
-      #                     color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
-      #                     allowPointSelect = T, outliers = T) %>%
-      #   hc_title(text = "Number of days per week with in-person contacts") %>%
-      #   hc_yAxis(min = 0,
-      #            max = 7,
-      #            categories = seq(0,7,1),
-      #            tickmarkPlacement = seq(0,7,1))
-      
-      hcPers <- highchart() %>% 
-        hc_chart(type = "bar") %>% 
-        hc_add_series(behaviorRedIso, "errorbar", 
-                      hcaes(x = coded_country, low = lowPers, high = highPers),
-                      color = "#3b738f") %>% 
-        hc_add_series(behaviorRedIso, "scatter",
-                      hcaes(x = coded_country, y = isoPers),
-                      color = "#3b738f",
-                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                      animation = list(duration = 1900),
-                      showInLegend = FALSE) %>%
-        hc_title(text = "Number of days per week with <b>in-person</b> contacts") %>%
-        hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
+      hcPers <- hcboxplot(x = behaviorRedIso$isoPers, var = behaviorRedIso$coded_country,
+                          color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
+                          allowPointSelect = T, outliers = T) %>%
+        hc_title(text = "Number of days per week with in-person contacts") %>%
         hc_yAxis(min = 0,
                  max = 7,
                  categories = seq(0,7,1),
-                 tickmarkPlacement = seq(0,7,1)) %>%
-        hc_tooltip(formatter = JS(tooltipJSPers))
-      
-      hcOnli <- highchart() %>% 
-        hc_chart(type = "bar") %>% 
-        hc_add_series(behaviorRedIso, "errorbar", 
-                      hcaes(x = coded_country, low = lowOnl, high = highOnl),
-                      color = "#3b738f") %>% 
-        hc_add_series(behaviorRedIso, "scatter",
-                      hcaes(x = coded_country, y = isoOnl),
-                      color = "#3b738f",
-                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                      animation = list(duration = 1900),
-                      showInLegend = FALSE) %>%
-        hc_title(text = "Number of days per week with <b>online</b> contacts") %>%
-        hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
+                 tickmarkPlacement = seq(0,7,1))
+      hcOnli <- hcboxplot(x = behaviorRedIso$isoOnl, var = behaviorRedIso$coded_country,
+                          color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
+                          allowPointSelect = T, outliers = T) %>%
+        hc_title(text = "Number of days per week with online contacts") %>%
         hc_yAxis(min = 0,
                  max = 7,
                  categories = seq(0,7,1),
-                 tickmarkPlacement = seq(0,7,1)) %>%
-        hc_tooltip(formatter = JS(tooltipJSOnl))
+                 tickmarkPlacement = seq(0,7,1))
       lst <- list(hcPers, hcOnli)  
       
       hw_grid(lst, ncol = 2, rowheight = "400")
       
     } else {
-      # behaviorRed <- behavior %>%
-      #   dplyr::select(coded_country, 
-      #                 label = one_of(input$BehVars)) %>%
-      #   filter(coded_country %in% input$psych_country_selection,
-      #          !is.na(label))
-      
-      behaviorRed <- ctry.scales %>%
+      behaviorRed <- behavior %>%
         dplyr::select(coded_country, 
-                      n,
-                      mean = one_of(input$BehVars),
-                      #sd = one_of(paste0(input$ComVars,".sd")),
-                      se = one_of(paste0(input$BehVars,".se"))) %>%
-        filter(coded_country %in% input$psych_country_selection) %>%
-        mutate(low = mean - qt(1 - (0.05 / 2), n - 1) * se,
-               high = mean + qt(1 - (0.05 / 2), n - 1) * se) %>% 
-        arrange(desc(mean))
+                      label = one_of(input$BehVars)) %>%
+        filter(coded_country %in% input$psych_country_selection,
+               !is.na(label))
       
-      tooltipJS <- paste0("function(){
-                      return ('Country: ' + this.point.coded_country + 
-                      ' <br> Mean: ' + Math.round((this.point.mean + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Lower Limit: ' + Math.round((this.point.low + Number.EPSILON) * 100) / 100 + 
-                      ' <br> Upper Limit: ' + Math.round((this.point.high + Number.EPSILON) * 100) / 100)
-                      }")
+      title.txt <- list(wash = "To minimize my chances of getting corona virus I wash my hands mroe often", 
+                        avoid = "To minimize my chances of getting corona virus I avoid crowded spaces")
       
-      
-      title.txt <- list(behWash = "To minimize my chances of getting corona virus I wash my hands mroe often", 
-                        behAvoid = "To minimize my chances of getting corona virus I avoid crowded spaces")
-      
-      y.min <- list(behWash = -3, 
-                    behAvoid = -3)
+      y.min <- list(wash = -3, 
+                    avoid = -3)
       y.max <- list(wash = 3, 
-                    behAvoid = 3)
+                    avoid = 3)
       
-      lab.ends <- list(behWash = c("-3<br>disagree", "3<br>agree"), 
-                       behAvoid = c("-3<br>disagree", "3<br>agree"))
+      lab.ends <- list(wash = c("-3<br>disagree", "3<br>agree"), 
+                       avoid = c("-3<br>disagree", "3<br>agree"))
       lab.ends.js <- paste0("function(){console.log(this);
                                         if(this.isFirst){
                                         return '",
@@ -1270,33 +900,10 @@ server <- function(input, output, session) {
                             }
                             }")
       
-      # hcboxplot(x = behaviorRed$label, var = behaviorRed$coded_country,
-      #           color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
-      #           allowPointSelect = T, outliers = T) %>%
-      #   hc_title(text = title.txt[[input$BehVars]]) %>%
-      #   hc_yAxis(showFirstLabel = T,
-      #            showLastLabel = T,
-      #            min = y.min[[input$BehVars]],
-      #            max = y.max[[input$BehVars]],
-      #            tickInterval = 1,
-      #            labels = list(formatter = JS(lab.ends.js)), 
-      #            categories = c("0"),
-      #            tickmarkPlacement = seq(0,7,1)) %>%
-      #   hw_grid(ncol = 1, rowheight = "400")
-      
-      highchart() %>% 
-        hc_chart(type = "bar") %>% 
-        hc_add_series(behaviorRed, "errorbar", 
-                      hcaes(x = coded_country, low = low, high = high),
-                      color = "#3b738f") %>% 
-        hc_add_series(behaviorRed, "scatter",
-                      hcaes(x = coded_country, y = mean),
-                      color = "#3b738f",
-                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                      animation = list(duration = 1900),
-                      showInLegend = FALSE) %>%
-        hc_title(text = title.txt[[input$BehVars]]) %>% 
-        hc_xAxis(categories = as.list(behaviorRed$coded_country)) %>%
+      hcboxplot(x = behaviorRed$label, var = behaviorRed$coded_country,
+                color = "#1d4f60", fillColor = "#3b738f", medianColor = "#4e99bf",
+                allowPointSelect = T, outliers = T) %>%
+        hc_title(text = title.txt[[input$BehVars]]) %>%
         hc_yAxis(showFirstLabel = T,
                  showLastLabel = T,
                  min = y.min[[input$BehVars]],
@@ -1305,7 +912,6 @@ server <- function(input, output, session) {
                  labels = list(formatter = JS(lab.ends.js)), 
                  categories = c("0"),
                  tickmarkPlacement = seq(0,7,1)) %>%
-        hc_tooltip(formatter = JS(tooltipJS)) %>%
         hw_grid(ncol = 1, rowheight = "400")
     }
   })
@@ -1344,7 +950,7 @@ server <- function(input, output, session) {
   
   output$cor <- renderHighchart({
     # for testing:
-    # input = list(CorX = "covidHope", CorY = "covidEff")
+    # input = list(CorX = "c19Hope", CorY = "c19Eff")
     
     cor.dat <- ctry.scales %>%
       dplyr::select(coded_country, n,
@@ -1355,7 +961,7 @@ server <- function(input, output, session) {
     
     varLab <- c("gov"="Clear Government Information",
                 "comRule"="Community Rules", "comPunish"="Community Punishment", "comOrg"="Community Organization",
-                "covidHope"="Hope", "covidEff"="Efficacy", "lone"="Loneliness", "para"="State Paranoia", "consp"="Conspiracy",
+                "c19Hope"="Hope", "c19Eff"="Efficacy", "lone"="Loneliness", "para"="State Paranoia", "consp"="Conspiracy",
                 "behWash"="Washing", "behAvoid"="Avoiding", "isoPers"="Isolation Offline", "isoOnl"="Isolation Online",
                 "affAnx"="Anxious", "affBor"="Bored", "affCalm"="Calm", "affContent"="Content", "affDepr"="Depressed", "affEnerg"="Energetic", 
                 "affExc"="Excited", "affNerv"="Nervous", "affExh"="Exhausted", "affInsp"="Inspired", "affRel"="Relaxed",
@@ -1391,21 +997,41 @@ server <- function(input, output, session) {
     if (input$dataTabs == 1) {
       
     } else if (input$dataTabs == 2) {
-      
+      radioGroupButtons(
+        inputId = "ComVars", 
+        label = "Variable:", 
+        #choices = c("language", "gender", "age", "education", "political"), 
+        selected = "extC19Rules",
+        justified = TRUE, 
+        status = "primary",
+        choiceNames = c("Rules", "Punishment", "Organization"),
+        choiceValues = c("extC19Rules", "extC19Punish", "extC19Org")
+        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+      )
     } else if (input$dataTabs == 3) {
       radioGroupButtons(
         inputId = "CogVars", 
         label = "Variable:", 
         #choices = c("language", "gender", "age", "education", "political"), 
-        selected = "covidHope",
+        selected = "c19Hope",
         justified = TRUE, 
         status = "primary",
         choiceNames = c("Hope", "Efficacy", "Loneliness", "Paranoia", "Conspiracy"),
-        choiceValues = c("covidHope", "covidEff", "lone", "para", "consp")
+        choiceValues = c("c19Hope", "c19Eff", "lone", "para", "consp")
         #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
       )
     } else if (input$dataTabs == 4) {
-      
+      radioGroupButtons(
+        inputId = "BehVars", 
+        label = "Variable:", 
+        #choices = c("language", "gender", "age", "education", "political"), 
+        selected = "wash",
+        justified = TRUE, 
+        status = "primary",
+        choiceNames = c("Washing", "Avoiding", "Social Contact"),
+        choiceValues = c("wash", "avoid", "iso")
+        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+      )
     } else if (input$dataTabs == 5) {
       list(h4("Choose Display Option:"),
            tags$b("Individual Emotions "),
