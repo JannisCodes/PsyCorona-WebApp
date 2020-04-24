@@ -2,30 +2,15 @@ library(shiny)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-#library(ggthemes)
 library(stats)
 library(shinydashboard)
 #library(dygraphs)
 #library(RColorBrewer)
-#library(dichromat)
-#library(zoo)
-#library(xts)
-#library(visNetwork)
-#library(geomnet)
-#library(igraph)
 library(stringr)
-#library(knitr)
 #library(DT)
 library(shinyjs)
 library(shinyWidgets)
 library(r2d3)
-#library(forcats)
-#library(rlang)
-#library(plotly)
-#library(ggiraph)
-#library(gapminder)
-#library(maps)
-#library(rworldmap)
 library(radarchart)
 library(haven)
 #library(leaflet)
@@ -33,11 +18,13 @@ library(highcharter)
 library(rgeos)
 library(scales)
 library(grDevices)
+library(shinyalert)
+library(shinyBS)
 
-# R Studio Clean-Up
-cat("\014") # clear console
-rm(list=ls()) # clear workspace
-gc() # garbage collector
+# R Studio Clean-Up:
+#cat("\014") # clear console
+#rm(list=ls()) # clear workspace
+#gc() # garbage collector
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # usually set by project
 
 # load data:
@@ -114,18 +101,39 @@ writeLines(r2d3_script, r2d3_file)
 
 
 ui <- dashboardPage(
-  title = "Psycorona Campaign: Data Tool",
-  dashboardHeader(title = "PsyCorona Data Tool"),
+  title = "PsyCorona: Data Visualization",
+  dashboardHeader(title=span( icon("fa-disease"), "PsyCorona Data Tool") #HTML(paste(icon("virus"), "PsyCorona Data Tool")),
+                  # dropdownMenu(type = "notifications",
+                  #              notificationItem(text = "Data is currenlty not accurate",
+                  #                               icon = icon("warning"),
+                  #                               status = "warning")
+                  #              )
+                  ),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
       menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
       menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
       menuItem("Data", tabName = "data", icon = icon("fas fa-share-square")),
-      menuItem("About", tabName = "about", icon = icon("info"))
-    )
+      menuItem("About", tabName = "about", icon = icon("info"))),
+    shinyjs::useShinyjs(),
+    tags$footer(HTML("<strong>Copyright &copy; 2020 <a href=\"https://psycorona.org/about/\" target=\"_blank\">PsyCorona</a>.</strong> 
+                   <br>This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.
+                   <br><a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a>
+                   <br>Last updated:<br>"), 
+                  latest.DateTime,
+                id = "sideFooter",
+                  align = "left",
+                  style = "
+                  position:absolute;
+                  bottom:0;
+                  width:100%;
+                  padding: 10px;
+                  "
+                  )
+      #HTML("<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a><br />This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.")
+      #)
   ),
-  
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
@@ -143,17 +151,20 @@ ui <- dashboardPage(
                                 };
                               });
                             }
+                            $('.sidebar-toggle').attr('id','menu')
                           ")),
-    
+    shinyjs::useShinyjs(),
     tabItems(
       tabItem(tabName = "sample",
+              useShinyalert(),
               h3("Our Sample"),
+              bsAlert("dataAlert"),
+              
               fluidRow(
                 box(width = 12,
                     radioGroupButtons(
                       inputId = "var", 
                       label = "Participant characteristics:", 
-                      #choices = c("language", "gender", "age", "education", "political"), 
                       selected = "languages",
                       justified = TRUE, 
                       status = "primary",
@@ -231,7 +242,6 @@ ui <- dashboardPage(
                                       radioGroupButtons(
                                         inputId = "ComVars", 
                                         #label = "", 
-                                        #choices = c("language", "gender", "age", "education", "political"), 
                                         selected = "comRule",
                                         justified = TRUE, 
                                         status = "primary",
@@ -247,7 +257,6 @@ ui <- dashboardPage(
                                       radioGroupButtons(
                                         inputId = "CogVars", 
                                         #label = "Variable:", 
-                                        #choices = c("language", "gender", "age", "education", "political"), 
                                         selected = "covidHope",
                                         justified = TRUE, 
                                         status = "primary",
@@ -263,13 +272,11 @@ ui <- dashboardPage(
                                       radioGroupButtons(
                                         inputId = "BehVars", 
                                         #label = "Variable:", 
-                                        #choices = c("language", "gender", "age", "education", "political"), 
                                         selected = "behWash",
                                         justified = TRUE, 
                                         status = "primary",
                                         choiceNames = c("Washing", "Avoiding", "Social Contact"),
                                         choiceValues = c("behWash", "behAvoid", "iso")
-                                        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                                       ),
                                       htmlOutput("boxBeh")
                              ),
@@ -299,7 +306,6 @@ ui <- dashboardPage(
                 box(width = 12, 
                     solidHeader = T,
                     status = "primary",
-                    #uiOutput("var.settings"),
                     multiInput(
                       inputId = "psych_country_selection",
                       label = "Countries (all countries n > 20):", 
@@ -405,20 +411,38 @@ ui <- dashboardPage(
               )
       ),
       tabItem(tabName = "data",
-              #h3("Dashboard tab content"),
               fluidRow(
                 box(title = "Data Protection",
                     width = 12, 
                     solidHeader = TRUE,
-                    "To protect the privacy and confidentiality of our participants, data access will never be made available without thorough vetting by our 
-                              editorial board. ... TO BE UPDATED.",
+                    HTML("To protect the privacy and confidentiality of our participants, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable).
+                    <br><b>Anonymization:</b><br>  
+                    <ol>
+                    <li>We use <b>data aggregation</b> as the main method of data anonymization. This means that we never show data of a single person or small groups of people,
+                    instead we combine data of multiple people to show country-level summary statistics. As an example, you can see the average level of hope in a country and 
+                    how much variation there was in the responses but you cannot see the rating of any individual respondent.
+                    <br>Importantly, the application only has access to the country-level summaries, which means that data cannot be linked or combined to single out individuals 
+                    (e.g., you cannot see the level of hope for U.S. women, aged 25-34, who speak Farsi and have a doctorate degree).
+                    <br><i>Note:</i> For aggregate data to effectively be anonymous we need to combine the responses of enough people, which is why we never display data of countries with less than 20 respondents.</li>
+                    
+                    <li>When we show summaries of categorical data (e.g., percentage of people identifying as female), we additionally apply <b>data perturbations</b> for small groups. This means that the counts and percentages 
+                    for groups that comprise less than 20 people (less than 50 for political orientation) have been slightly changed (e.g., a random number between -2 and 2 or between -5 and 5 has been added; 
+                    this process is also sometimes referred to as 'artificial noise addition'). 
+                    <br>Please note that this also means that the numbers are not always 100% accurate. However, with this method, we can represent the full diversity of our sample while still protecting the identities of people in 
+                    small or vulnerable groups.</li>
+                    </ol>
+                    These are the main ways in which we protect the personal data of our participants and make sure that no individual is identifiable within the application. If you have any questions or concerns, please feel
+                    free to contact us at <a href=\"mailto:psycorona@rug.nl?Subject=Data%20web%20application\" target=\"_top\">psycorona@rug.nl</a>.
+                    <br><b>Access:</b> <br>
+                    Access to person-level data will never be made available without thorough vetting by our editorial board (see data sharing below). And even then, we only share
+                    anonymized or pseudonymized data with active academic collaborators."),
                     tags$br(),
                     tags$br()
                 ),
                 box(title = "Data Collaboration",
                     width = 12, 
                     solidHeader = TRUE,
-                    "One major aim of the PsyCorona initiative is to combine psychologolical reactions with local, regional, and national
+                    "One major aim of the PsyCorona initiative is to combine psychological reactions with local, regional, and national
                               data on the Covid-19 spread and governmental reactions towards it. In our efforts we collaborate with ",
                     tags$a(href="https://dataversuscorona.com/", 
                            target="_blank",
@@ -435,10 +459,10 @@ ui <- dashboardPage(
                     width = 12, 
                     solidHeader = TRUE,
                     "The aim of the PsyCorona initiative is to build a collaborative research network. If you are interested in becoming
-                              part of the PsyCorona initiative you contact us via our website: ",
+                              part of the PsyCorona initiative, you contact us via our website: ",
                     tags$a(href="https://psycorona.org/", 
                            target="_blank",
-                           "www.psycorona.org/."),
+                           "www.psycorona.org."),
                     
                     tags$br(),
                     tags$br(),
@@ -461,7 +485,6 @@ ui <- dashboardPage(
                   solidHeader = TRUE,
                   
                   h4("The Initiative:"),
-                  #tags$b("The Project:"),
                   "Psychology and culture could affect the spread of the virus; human psychology could also change in response to the pandemic. 
                             We aim to mobilize behavioral and data scientists to identify targets for rapid intervention to slow the spread of the pandemic and minimize its social damage. 
                             All the scientists on the team are operating on a largely volunteer basis, relying on existing infrastructure and their own resources.
@@ -469,11 +492,11 @@ ui <- dashboardPage(
                             We have evolved into a distributed team across the world, with autonomous work groups in numerous countries, each of whom understands the PsyCorona mission goals and needs. 
                             We aim to ensure global involvement, so we are translating the survey into more languages on a daily basis.
                             Currently more than 100 international social scientists are working together to collect immediate and longitudinal information on 
-                            the key social science factors that might predict the spread of COVID-19. The project, is documented in detail our",
+                            the key social science factors that might predict the spread of COVID-19. The project, is documented in detail on our",
                   tags$a(href="https://www.psycorona.org", 
                          target="_blank",
-                         "PsyCorona website"),
-                  ". We pair social and data scientists to connect data across multiple layers—individual survey reports from", prettyNum(sum(world.n$n), big.mark=" ", scientific=FALSE), 
+                         "PsyCorona website."),
+                  " We pair social- and data scientists to connect data across multiple layers—individual survey reports of", prettyNum(sum(world.n$n), big.mark=" ", scientific=FALSE), 
                   "participants from more than",length(world.n$coded_country)-1,"countries, satellite data documenting social distancing, and World Health Organization data on county level spread 
                              of the disease.",
                   br(),
@@ -495,7 +518,7 @@ ui <- dashboardPage(
                     tags$li("The ",
                             a("Data", onclick = "openTab('data')", href="#"),
                             "tab provides information on how we deal with our participants' data and how you can get involved in data analysis.
-                                      Here we also share information on our open source code and connections to meta data repositories we are aiming to 
+                                      Here we also share information on our open-source code and connections to meta data repositories we are aiming to 
                                       connect to the psychological responses we measure during the PsyCorona initiative.")),
                   "The remaining three tabs offer tools to visualize the psychological data we collect in this project.",
                   tags$ul(
@@ -503,7 +526,7 @@ ui <- dashboardPage(
                             a("Our Sample", onclick = "openTab('sample')", href="#"),
                             " tab offers an insight into the diversity of our participants. We share compound information on some demographic variables,
                                       as well as the number of participants we have reached in each country. Please note that to protect the privacy and anonymity
-                                      of our participants most data visualizations are only available for selections of more then 25 people."),
+                                      of our participants data visualizations are only available for selections of more than 20 people."),
                     tags$li("The ",
                             a("Psychological Variables", onclick = "openTab('Variables')", href="#"),
                             " tab offers an interactive interface to explore the psychological variables we collect in the initiative's baseline survey. 
@@ -520,12 +543,11 @@ ui <- dashboardPage(
                     tags$li("The ",
                             a("Development", onclick = "openTab('development')", href="#"),
                             " tab gives you the possibility to interactively explore how different areas are evolving over time. This section is currently under
-                                      construction, but will be available as soon as we have a dataset of developmental data that can be modeled over time.")
+                                      construction, but will be available as soon as we finish data collection of developmental data that can be modeled over time.")
                   )
                 ),
                 box(width = 4,
                     HTML("<a class=\"twitter-timeline\" data-height=\"600\" href=\"https://twitter.com/FortuneMagazine/lists/coronavirus-updates?ref_src=twsrc%5Etfw\">A Twitter List by FortuneMagazine</a> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>")
-                    #HTML("<a class=\"twitter-timeline\" data-lang=\"en\" data-height=\"500\" href=\"https://twitter.com/ReMatriate?ref_src=twsrc%5Etfw\">Tweets by ReMatriate</a> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>")
                 )
               ),
               fluidRow(
@@ -533,15 +555,31 @@ ui <- dashboardPage(
                 valueBox(sum(str_count(names(ctry.scales), c("language")))-1, "Languages", icon = icon("language"), width = 4),
                 valueBox("100+", "Researchers", icon = icon("user-graduate"), width = 4)#,
                 #valueBox(404, "Something", icon = icon("project-diagram"), width = 3)
-                
               )
       )
     )
+    )
   )
-)
 
 
 server <- function(input, output, session) {
+  
+  # shinyalert(title = "Preview Version", 
+  #            text = "This application is currently in development. 
+  #            To protect the privacy and confidentiality of our participants this beta version relies on simulated data.",
+  #            type = "warning",
+  #            animation = TRUE,
+  #            confirmButtonCol = "#3b738f"
+  #            )
+  
+  createAlert(session = session,
+              anchorId = "dataAlert",
+              #alertId="a1",
+              title = paste(icon("warning"),"Data Notification"),
+              content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
+              For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bare in mind that we display data collected over the past weeks. 
+              This means the data might not be representative of how countries are doing right now.",
+              style = "warning")
   
   output$sample.bar.NA <- renderText({
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
@@ -576,8 +614,7 @@ server <- function(input, output, session) {
              label = str_replace(rownames(.), ".*_", "")) %>%
       arrange(desc(n)) %>%
       filter(n > 0,
-             label != "<NA>",
-             sum(n)>=20) %>%
+             label != "<NA>") %>%
       mutate(y = n,
              ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
              fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
@@ -886,7 +923,7 @@ server <- function(input, output, session) {
                       }")
       
       
-      title.txt <- list(behWash = "To minimize my chances of getting corona virus I wash my hands mroe often.  [Mean and 95%CI]", 
+      title.txt <- list(behWash = "To minimize my chances of getting corona virus I wash my hands more often.  [Mean and 95%CI]", 
                         behAvoid = "To minimize my chances of getting corona virus I avoid crowded spaces.  [Mean and 95%CI]")
       
       y.min <- list(behWash = -3, 
@@ -1010,36 +1047,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # output$var.settings <- renderUI({
-  #   if (input$dataTabs == 1) {
-  #     
-  #   } else if (input$dataTabs == 2) {
-  #     
-  #   } else if (input$dataTabs == 3) {
-  #     
-  #   } else if (input$dataTabs == 4) {
-  #     
-  #   } else if (input$dataTabs == 5) {
-  #     list(h4("Choose Display Option:"),
-  #          tags$b("Individual Emotions "),
-  #          prettySwitch(
-  #            inputId = "categorySwitch",
-  #            label = tags$b("Emotional Categories"), 
-  #            status = "success",
-  #            fill = TRUE,
-  #            inline = TRUE,
-  #            value = TRUE
-  #          ),
-  #          h4("Select Relevant Regions:")
-  #        )
-  #   } else {
-  #     
-  #   }
-  #   
-  # })
-  
-  
-  
+
   observeEvent(input$reset_input_ctry, {
     shinyjs::reset("country_controls")
   })
@@ -1075,6 +1083,10 @@ server <- function(input, output, session) {
       selected = character(0)
     )
   })
+  
+  shinyjs::onclick("menu",
+                   shinyjs::toggle(id = "sideFooter", anim = F))
+  
 }
 
 # Run the application 
