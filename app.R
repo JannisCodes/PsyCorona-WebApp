@@ -140,9 +140,11 @@ ui <- dashboardPage(
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
     tags$head( tags$meta(name = "viewport", content = "width=1600"),uiOutput("body")),
     tags$style(
-      type = 'text/css', 
+      type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
-               .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }'
+      .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }
+      
+      '
     ),
     tags$style("@import url(https://use.fontawesome.com/releases/v5.13.0/css/all.css);"),
     tags$script(src = "https://code.highcharts.com/mapdata/custom/world.js"),
@@ -269,7 +271,7 @@ ui <- dashboardPage(
                                             inputId = "CogVars", 
                                             #label = "Variable:", 
                                             selected = "covidHope",
-                                            justified = TRUE, 
+                                            #justified = TRUE, 
                                             status = "primary",
                                             choiceNames = c("Hope", "Efficacy", "Loneliness", "Paranoia", "Conspiracy"),
                                             choiceValues = c("covidHope", "covidEff", "lone", "para", "consp")
@@ -286,7 +288,7 @@ ui <- dashboardPage(
                                             inputId = "BehVars", 
                                             #label = "Variable:", 
                                             selected = "behWash",
-                                            justified = TRUE, 
+                                            #justified = TRUE, 
                                             status = "primary",
                                             choiceNames = c("Washing", "Avoiding", "Social Contact"),
                                             choiceValues = c("behWash", "behAvoid", "iso")

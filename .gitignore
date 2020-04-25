@@ -3,5 +3,9 @@
 .RData
 .Ruserdata
 .Rproj
+.DS_Store
+.Icon
 /data
 /rsconnect
+ShinyAppsSetup.R
+app_boxplots.R
