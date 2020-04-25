@@ -140,7 +140,7 @@ ui <- dashboardPage(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
     tags$head(tags$meta(name = "viewport", content = "width=1600"), uiOutput("body")),
-    tags$head(tags$link(rel="shortcut icon", href="URL-to-favicon")),
+    #tags$head(tags$link(rel="shortcut icon", href="https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/faviconData.png")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
@@ -176,7 +176,7 @@ ui <- dashboardPage(
     meta() %>%
       meta_social(
         title = "PsyCorona: Data Visualization",
-        description = "A tool to explore the patterns of psychological reactions to the Covid-19 epidemic.",
+        description = paste0("A tool to explore the patterns of psychological reactions to the Covid-19 epidemic across ", nrow(ctry.only.red), " countries."),
         url = "https://psycorona.shinyapps.io/WebApp/",
         image = "https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/media.png",
         image_alt = "PsyCorona Data Tool",
