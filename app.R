@@ -37,7 +37,7 @@ function svg_width()  {return parseInt(svg.style('width'))}
 function col_top()  {return svg_height() * 0.05; }
 function col_left() {return svg_width()  * 0.25;} 
 function actual_max() {return d3.max(data, function (d) {return d.y; }); }
-function col_width()  {return (svg_width() / actual_max()) * 0.50; }
+function col_width()  {return (svg_width() / actual_max()) * 0.60; }
 function col_heigth() {return svg_height() / data.length * 0.95; }
 
   var bars = svg.selectAll('rect').data(data);
@@ -138,7 +138,7 @@ ui <- dashboardPage(
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
-    tags$head( tags$meta(name = "viewport", content = "width=1600"),uiOutput("body")),
+    tags$head(tags$meta(name = "viewport", content = "width=1600"),uiOutput("body")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
@@ -159,10 +159,17 @@ ui <- dashboardPage(
                               });
                             };
                             $('.sidebar-toggle').attr('id','menu');
-                            $(document).on('shiny:sessioninitialized', function (e) {
-                              var mobile = window.matchMedia('only screen and (max-width: 768px)').matches;
-                              Shiny.onInputChange('is_mobile_device', mobile);
-                              });
+                            var dimension = [0, 0];
+                                $(document).on('shiny:connected', function(e) {
+                                    dimension[0] = window.innerWidth;
+                                    dimension[1] = window.innerHeight;
+                                    Shiny.onInputChange('dimension', dimension);
+                                });
+                                $(window).resize(function(e) {
+                                    dimension[0] = window.innerWidth;
+                                    dimension[1] = window.innerHeight;
+                                    Shiny.onInputChange('dimension', dimension);
+                                });
                           ")),
     shinyjs::useShinyjs(),
     tabItems(
@@ -187,8 +194,9 @@ ui <- dashboardPage(
                         )
                     ),
                     h3(textOutput("sample.bar.NA"), align = "center"),
-                    d3Output("d3.bar")
-                )
+                    d3Output("d3.bar"),
+                    textOutput("SampleTxt"), align = "center")
+                #)
               ),
               fluidRow(
                 box(
@@ -313,7 +321,7 @@ ui <- dashboardPage(
                                                 value = TRUE
                                               )
                                             ),
-                                      chartJSRadarOutput('affect', height = "125")
+                                      chartJSRadarOutput('affect', height = "125", width = "400")
                              ),
                              tabPanel("Cross Domain Relationships",
                                       value = 6,
@@ -583,11 +591,21 @@ ui <- dashboardPage(
 
 
 server <- function(input, output, session) {
-  # is_mobile_device <- reactive(isTRUE(input$is_mobile_device))
-  # 
-  # observe(is_mobile_device, {
-  #   shinyalert("Oops!", "Something went wrong.", type = "error")
-  #   })
+  
+  # observeEvent(input$dimension[1], {
+  #   if (input$dimension[1] <= 767) {
+  #     shinyalert(title = "Small Screen Detected", 
+  #               text = "Some elements of this application are not optimized for smaller screens.
+  #               If you have problems viewing some of the graphical displays please try to use a desktop or tablet device with a larger screens.
+  #               Some graphs might be visible if you use your device in landscape mode.",
+  #               type = "info",
+  #               animation = TRUE,
+  #               confirmButtonCol = "#3b738f"
+  #               )
+  #   } else {
+  #   }
+  # })
+
   
   # shinyalert(title = "Mobile Version", 
   #            text = "This application is currently in development. 
@@ -622,6 +640,17 @@ server <- function(input, output, session) {
              label != "<NA>")
     
     ifelse(sum(test$n)<20, "Not enough data to display summary","")
+  })
+  
+  output$SampleTxt <- renderText({
+    #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
+    
+    explanation <- list(languages = "I have high hopes that the situation regarding coronavirus will improve. [Mean and 95%CI]", 
+                        gender = "I think that this country is able to fight the Coronavirus. [Mean and 95%CI]",
+                        age = "Mean Loneliness Scores [Mean and 95%CI]",
+                        education = "Mean State Paranoia Scores [Mean and 95%CI]",
+                        political = "Mean Conspiracy Scores [Mean and 95%CI]")
+    explanation[[input$var]]
   })
   
   output$d3.bar <- renderD3({
@@ -1024,7 +1053,8 @@ server <- function(input, output, session) {
                         )
     )
     names(radar) <- c("label", input$psych_country_selection)
-    chartJSRadar(radar, maxScale = 5, showToolTipLabel=TRUE, showLegend = T) 
+    chartJSRadar(radar, maxScale = 5, showToolTipLabel=TRUE, showLegend = T, responsive = T, 
+                 labelSize = 12) 
   })
   
   output$cor <- renderHighchart({
@@ -1112,6 +1142,7 @@ server <- function(input, output, session) {
   shinyjs::onclick("menu",
                    shinyjs::toggle(id = "sideFooter", anim = F))
   
+  shiny:::flushReact()
 }
 
 # Run the application 
