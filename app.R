@@ -35,14 +35,14 @@ r2d3_script <- "
 function svg_height() {return parseInt(svg.style('height'))}
 function svg_width()  {return parseInt(svg.style('width'))}
 function col_top()  {return svg_height() * 0.05; }
-function col_left() {return svg_width()  * 0.20; }
+function col_left() {return svg_width()  * 0.25;} 
 function actual_max() {return d3.max(data, function (d) {return d.y; }); }
 function col_width()  {return (svg_width() / actual_max()) * 0.55; }
 function col_heigth() {return svg_height() / data.length * 0.95; }
 
   var bars = svg.selectAll('rect').data(data);
   bars.enter().append('rect')
-      .attr('x',      col_left())
+      .attr('x',      150)
       .attr('y',      function(d, i) { return i * col_heigth() + col_top(); })
       .attr('width',  function(d) { return d.y * col_width(); })
       .attr('height', col_heigth() * 0.9)
@@ -59,7 +59,7 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
       });
   bars.transition()
     .duration(500)
-      .attr('x',      col_left())
+      .attr('x',      150)
       .attr('y',      function(d, i) { return i * col_heigth() + col_top(); })
       .attr('width',  function(d) { return d.y * col_width(); })
       .attr('height', col_heigth() * 0.9)
@@ -84,13 +84,13 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
   // Numeric labels
   var totals = svg.selectAll().data(data);
   totals.enter().append('text')
-      .attr('x', function(d) { return ((d.y * col_width()) + col_left()) * 1.01; })
+      .attr('x', function(d) { return ((d.y * col_width()) + 150) * 1.01; })
       .attr('y', function(d, i) { return i * col_heigth() + (col_heigth() / 2) + col_top(); })
       .style('font-family', 'sans-serif')
       .text(function(d) {return d.ylabel; });
   totals.transition()
       .duration(1000)
-      .attr('x', function(d) { return ((d.y * col_width()) + col_left()) * 1.01; })
+      .attr('x', function(d) { return ((d.y * col_width()) + 150) * 1.01; })
       .attr('y', function(d, i) { return i * col_heigth() + (col_heigth() / 2) + col_top(); })
       .attr('d', function(d) { return d.x; })
       .text(function(d) {return d.ylabel; });
@@ -102,7 +102,7 @@ writeLines(r2d3_script, r2d3_file)
 
 ui <- dashboardPage(
   title = "PsyCorona: Data Visualization",
-  dashboardHeader(title=span( icon("fa-disease"), "PsyCorona Data Tool") #HTML(paste(icon("virus"), "PsyCorona Data Tool")),
+  dashboardHeader(title=span( icon("fas fa-virus"), "PsyCorona Data Tool") #HTML(paste(icon("virus"), "PsyCorona Data Tool")),
                   # dropdownMenu(type = "notifications",
                   #              notificationItem(text = "Data is currenlty not accurate",
                   #                               icon = icon("warning"),
@@ -115,7 +115,8 @@ ui <- dashboardPage(
       menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
       menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
       menuItem("Data", tabName = "data", icon = icon("fas fa-share-square")),
-      menuItem("About", tabName = "about", icon = icon("info"))),
+      menuItem("About", tabName = "about", icon = icon("info")),
+      menuItem(HTML(paste0("Take the Suvey Now ", icon("external-link"))), icon=icon("fas fa-file-signature"), href = "https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", newtab = T)),
     shinyjs::useShinyjs(),
     tags$footer(HTML("<strong>Copyright &copy; 2020 <a href=\"https://psycorona.org/about/\" target=\"_blank\">PsyCorona</a>.</strong> 
                    <br>This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.
@@ -137,11 +138,13 @@ ui <- dashboardPage(
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
+    tags$head( tags$meta(name = "viewport", content = "width=1600"),uiOutput("body")),
     tags$style(
       type = 'text/css', 
       '.bg-aqua {background-color: #3c8dbe!important; }
                .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }'
     ),
+    tags$style("@import url(https://use.fontawesome.com/releases/v5.13.0/css/all.css);"),
     tags$script(src = "https://code.highcharts.com/mapdata/custom/world.js"),
     tags$script(HTML("
                             var openTab = function(tabName){
@@ -150,8 +153,12 @@ ui <- dashboardPage(
                                   this.click()
                                 };
                               });
-                            }
-                            $('.sidebar-toggle').attr('id','menu')
+                            };
+                            $('.sidebar-toggle').attr('id','menu');
+                            $(document).on('shiny:sessioninitialized', function (e) {
+                              var mobile = window.matchMedia('only screen and (max-width: 768px)').matches;
+                              Shiny.onInputChange('is_mobile_device', mobile);
+                              });
                           ")),
     shinyjs::useShinyjs(),
     tabItems(
@@ -162,15 +169,16 @@ ui <- dashboardPage(
               
               fluidRow(
                 box(width = 12,
-                    radioGroupButtons(
-                      inputId = "var", 
-                      label = "Participant characteristics:", 
-                      selected = "languages",
-                      justified = TRUE, 
-                      status = "primary",
-                      choiceNames = c("Survey language", "Gender", "Age", "Education", "Political orientation"),
-                      choiceValues = c("languages", "gender", "age", "education", "political")
-                      #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                    div(style="display:inline-block;width:100%;text-align: center;",
+                        radioGroupButtons(
+                          inputId = "var", 
+                          label = "Participant characteristics:", 
+                          selected = "languages",
+                          status = "primary",
+                          choiceNames = c("Survey language", "Gender", "Age", "Education", "Political orientation"),
+                          choiceValues = c("languages", "gender", "age", "education", "political")
+                          #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                        )
                     ),
                     h3(textOutput("sample.bar.NA"), align = "center"),
                     d3Output("d3.bar")
@@ -239,44 +247,50 @@ ui <- dashboardPage(
                              ),
                              tabPanel("Community Response", 
                                       value = 2,
-                                      radioGroupButtons(
-                                        inputId = "ComVars", 
-                                        #label = "", 
-                                        selected = "comRule",
-                                        justified = TRUE, 
-                                        status = "primary",
-                                        choiceNames = c("Rules", "Punishment", "Organization"),
-                                        choiceValues = c("comRule", "comPunish", "comOrg")
-                                        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                                      div(style="display:inline-block;width:100%;text-align: center;",
+                                          radioGroupButtons(
+                                            inputId = "ComVars", 
+                                            #label = "", 
+                                            selected = "comRule",
+                                            #justified = TRUE, 
+                                            status = "primary",
+                                            choiceNames = c("Rules", "Punishment", "Organization"),
+                                            choiceValues = c("comRule", "comPunish", "comOrg")
+                                            #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                                          )
                                       ),
                                       highchartOutput("boxCom")
                              ),
                              tabPanel("Cognitive Response",
                                       value = 3,
                                       #Financial strain(?), job insecurity (?)",
-                                      radioGroupButtons(
-                                        inputId = "CogVars", 
-                                        #label = "Variable:", 
-                                        selected = "covidHope",
-                                        justified = TRUE, 
-                                        status = "primary",
-                                        choiceNames = c("Hope", "Efficacy", "Loneliness", "Paranoia", "Conspiracy"),
-                                        choiceValues = c("covidHope", "covidEff", "lone", "para", "consp")
-                                        #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                                      div(style="display:inline-block;width:100%;text-align: center;",
+                                          radioGroupButtons(
+                                            inputId = "CogVars", 
+                                            #label = "Variable:", 
+                                            selected = "covidHope",
+                                            justified = TRUE, 
+                                            status = "primary",
+                                            choiceNames = c("Hope", "Efficacy", "Loneliness", "Paranoia", "Conspiracy"),
+                                            choiceValues = c("covidHope", "covidEff", "lone", "para", "consp")
+                                            #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
+                                          )
                                       ),
                                       highchartOutput("boxCog")
                              ),
                              tabPanel("Behavioral Response",
                                       value = 4,
                                       #"isolation, beh",
-                                      radioGroupButtons(
-                                        inputId = "BehVars", 
-                                        #label = "Variable:", 
-                                        selected = "behWash",
-                                        justified = TRUE, 
-                                        status = "primary",
-                                        choiceNames = c("Washing", "Avoiding", "Social Contact"),
-                                        choiceValues = c("behWash", "behAvoid", "iso")
+                                      div(style="display:inline-block;width:100%;text-align: center;",
+                                          radioGroupButtons(
+                                            inputId = "BehVars", 
+                                            #label = "Variable:", 
+                                            selected = "behWash",
+                                            justified = TRUE, 
+                                            status = "primary",
+                                            choiceNames = c("Washing", "Avoiding", "Social Contact"),
+                                            choiceValues = c("behWash", "behAvoid", "iso")
+                                          )
                                       ),
                                       htmlOutput("boxBeh")
                              ),
@@ -563,11 +577,16 @@ ui <- dashboardPage(
 
 
 server <- function(input, output, session) {
+  # is_mobile_device <- reactive(isTRUE(input$is_mobile_device))
+  # 
+  # observe(is_mobile_device, {
+  #   shinyalert("Oops!", "Something went wrong.", type = "error")
+  #   })
   
-  # shinyalert(title = "Preview Version", 
+  # shinyalert(title = "Mobile Version", 
   #            text = "This application is currently in development. 
   #            To protect the privacy and confidentiality of our participants this beta version relies on simulated data.",
-  #            type = "warning",
+  #            type = "info",
   #            animation = TRUE,
   #            confirmButtonCol = "#3b738f"
   #            )
@@ -577,7 +596,7 @@ server <- function(input, output, session) {
               #alertId="a1",
               title = paste(icon("warning"),"Data Notification"),
               content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
-              For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bare in mind that we display data collected over the past weeks. 
+              For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
               This means the data might not be representative of how countries are doing right now.",
               style = "warning")
   
