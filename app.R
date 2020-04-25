@@ -37,7 +37,7 @@ function svg_width()  {return parseInt(svg.style('width'))}
 function col_top()  {return svg_height() * 0.05; }
 function col_left() {return svg_width()  * 0.25;} 
 function actual_max() {return d3.max(data, function (d) {return d.y; }); }
-function col_width()  {return (svg_width() / actual_max()) * 0.55; }
+function col_width()  {return (svg_width() / actual_max()) * 0.50; }
 function col_heigth() {return svg_height() / data.length * 0.95; }
 
   var bars = svg.selectAll('rect').data(data);
@@ -143,7 +143,9 @@ ui <- dashboardPage(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
       .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }
-      
+      .btn.radiobtn.btn-primary {float: center!important;
+                                 display: block;
+                                 width: 150px}
       '
     ),
     tags$style("@import url(https://use.fontawesome.com/releases/v5.13.0/css/all.css);"),
@@ -171,12 +173,14 @@ ui <- dashboardPage(
               
               fluidRow(
                 box(width = 12,
-                    div(style="display:inline-block;width:100%;text-align: center;",
+                    div(style="display:inline-block;width:100%;text-align:center;",
                         radioGroupButtons(
                           inputId = "var", 
                           label = "Participant characteristics:", 
                           selected = "languages",
                           status = "primary",
+                          #justified = T,
+                          #individual = T,
                           choiceNames = c("Survey language", "Gender", "Age", "Education", "Political orientation"),
                           choiceValues = c("languages", "gender", "age", "education", "political")
                           #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
