@@ -273,7 +273,7 @@ ui <- dashboardPage(
                              tabPanel("Government Reponse",
                                       value = 1,
                                       highchartOutput("boxGov"),
-                                      "Explanation: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
                                       (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
                                       another country can have a multitude of reasons (including, when most people answered the question)."
@@ -293,7 +293,7 @@ ui <- dashboardPage(
                                           )
                                       ),
                                       highchartOutput("boxCom"),
-                                      "Explanation: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
                                       (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
                                       another country can have a multitude of reasons (including, when most people answered the question)."
@@ -314,7 +314,7 @@ ui <- dashboardPage(
                                           )
                                       ),
                                       highchartOutput("boxCog"),
-                                      "Explanation: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
                                       (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
                                       another country can have a multitude of reasons (including, when most people answered the question)."
@@ -334,7 +334,7 @@ ui <- dashboardPage(
                                           )
                                       ),
                                       htmlOutput("boxBeh"),
-                                      "Explanation: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
                                       (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
                                       another country can have a multitude of reasons (including, when most people answered the question)."
@@ -354,7 +354,7 @@ ui <- dashboardPage(
                                             ),
                                       chartJSRadarOutput('affect', height = "125", width = "400"),
                                       tags$br(),
-                                      "Explanation: Here you can see the emotional reactions of people. There are two ways to look at them: Emotional Categories and Individual Emotions. 
+                                      "Note: Here you can see the emotional reactions of people. There are two ways to look at them: Emotional Categories and Individual Emotions. 
                                       For the individual emotions, people answered how much they felt that emotion over the last week. For the emotional categories, we averaged together 
                                       the emotions that are either high or low on arousal as well as positive or negative (negative high arousal: anxiety and nervous; negative low arousal: 
                                       bored, exhausted, depressed; positive high arousal: energetic, excited, inspired; positive low arousal: calm, content, relaxed)"
@@ -362,7 +362,7 @@ ui <- dashboardPage(
                              tabPanel("Cross Domain Relationships",
                                       value = 6,
                                       highchartOutput("cor"),
-                                      "Explanation: Here you can select two variables and plot them against each other. One bubble represents one country. 
+                                      "Note: Here you can select two variables and plot them against each other. One bubble represents one country. 
                                       The bigger the bubble, the more people from that country answered the question. The position of the bubble represents the average levels of the variables 
                                       you select. This allows you to examine relationships between variables. For example, do countries that are higher in one variable also tend to be higher 
                                       on the other variable."
@@ -685,11 +685,11 @@ server <- function(input, output, session) {
   output$SampleTxt <- renderText({
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     
-    explanation <- list(languages = "Explanation: The languages people used to answer the survey. Below, you can select the countries you are interested in.", 
-                        gender = "Explanation: The gender people identified with.",
-                        age = "Explanation: The age of people who filled out the survey. ",
-                        education = "Explanation: The education level of people who filled out the survey. ",
-                        political = "Explanation: The political orientation of people who filled out the survey.")
+    explanation <- list(languages = "Note: The languages people used to answer the survey. Below, you can select the countries you are interested in.", 
+                        gender = "Note: The gender people identified with.",
+                        age = "Note: The age of people who filled out the survey. ",
+                        education = "Note: The education level of people who filled out the survey. ",
+                        political = "Note: The political orientation of people who filled out the survey.")
     explanation[[input$var]]
   })
   
