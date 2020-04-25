@@ -139,7 +139,8 @@ ui <- dashboardPage(
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
-    #tags$head(tags$meta(name = "og:image", content = "width=1600")),
+    tags$head(tags$meta(name = "viewport", content = "width=1600"), uiOutput("body")),
+    tags$head(tags$link(rel="shortcut icon", href="URL-to-favicon")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
@@ -175,13 +176,13 @@ ui <- dashboardPage(
     meta() %>%
       meta_social(
         title = "PsyCorona: Data Visualization",
-        description = "social media cards for web sharing thingies",
+        description = "A tool to explore the patterns of psychological reactions to the Covid-19 epidemic.",
         url = "https://psycorona.shinyapps.io/WebApp/",
         image = "https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/media.png",
-        image_alt = "An image for social meda cards",
-        twitter_creator = "@JannisWrites",
-        twitter_card_type = "summary",
-        twitter_site = "@JannisWrites"
+        image_alt = "PsyCorona Data Tool",
+        #twitter_creator = "@JannisWrites",
+        twitter_card_type = "summary"
+        #twitter_site = "@JannisWrites"
         ),
     
     shinyjs::useShinyjs(),
