@@ -4,6 +4,7 @@ library(tidyr)
 library(ggplot2)
 library(stats)
 library(shinydashboard)
+library(metathis)
 #library(dygraphs)
 #library(RColorBrewer)
 library(stringr)
@@ -138,7 +139,7 @@ ui <- dashboardPage(
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
-    tags$head(tags$meta(name = "viewport", content = "width=1600"),uiOutput("body")),
+    #tags$head(tags$meta(name = "og:image", content = "width=1600")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
@@ -171,6 +172,18 @@ ui <- dashboardPage(
                                     Shiny.onInputChange('dimension', dimension);
                                 });
                           ")),
+    meta() %>%
+      meta_social(
+        title = "PsyCorona: Data Visualization",
+        description = "social media cards for web sharing thingies",
+        url = "https://psycorona.shinyapps.io/WebApp/",
+        image = "https://garrickadenbuie.com/apple-touch-icon-114x114.png",
+        image_alt = "An image for social meda cards",
+        twitter_creator = "@JannisWrites",
+        twitter_card_type = "summary",
+        twitter_site = "@JannisWrites"
+        ),
+    
     shinyjs::useShinyjs(),
     tabItems(
       tabItem(tabName = "sample",
