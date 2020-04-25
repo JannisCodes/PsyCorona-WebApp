@@ -177,7 +177,7 @@ ui <- dashboardPage(
         title = "PsyCorona: Data Visualization",
         description = "social media cards for web sharing thingies",
         url = "https://psycorona.shinyapps.io/WebApp/",
-        image = "https://garrickadenbuie.com/apple-touch-icon-114x114.png",
+        image = "https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/media.png",
         image_alt = "An image for social meda cards",
         twitter_creator = "@JannisWrites",
         twitter_card_type = "summary",
