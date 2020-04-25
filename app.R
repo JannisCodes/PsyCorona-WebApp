@@ -194,9 +194,9 @@ ui <- dashboardPage(
                         )
                     ),
                     h3(textOutput("sample.bar.NA"), align = "center"),
-                    d3Output("d3.bar"),
-                    textOutput("SampleTxt"), align = "center")
-                #)
+                    d3Output("d3.bar")
+                    #textOutput("SampleTxt"), align = "center")
+                )
               ),
               fluidRow(
                 box(
@@ -710,6 +710,10 @@ server <- function(input, output, session) {
     
     categories <- c("0" , "1<br>unclear", "2", "3", "4", "5", "6<br>clear")
     
+    if (nrow(governmentRed) == 0) {
+      highchart() %>%
+        hc_title(text = "Select Countries to Display")
+    } else {
     highchart() %>% 
       hc_chart(type = "bar") %>% 
       hc_add_series(governmentRed, "errorbar", 
@@ -734,6 +738,7 @@ server <- function(input, output, session) {
                #align = "center",
                tickmarkPlacement = seq(1,6,1)) %>%
       hc_tooltip(formatter = JS(tooltipJS))
+    }
   })
   
   output$boxCom <- renderHighchart({
@@ -764,6 +769,10 @@ server <- function(input, output, session) {
     
     categories <- c("0" , "1<br>not at all", "2", "3", "4", "5", "6<br>very much")
     
+    if (nrow(communityRed) == 0) {
+      highchart() %>%
+        hc_title(text = "Select Countries to Display")
+    } else {
     highchart() %>% 
       hc_chart(type = "bar") %>% 
       hc_add_series(communityRed, "errorbar", 
@@ -788,7 +797,7 @@ server <- function(input, output, session) {
                #align = "center",
                tickmarkPlacement = seq(1,6,1)) %>%
       hc_tooltip(formatter = JS(tooltipJS))
-    
+    }
   })
   
   output$boxCog <- renderHighchart({
@@ -854,7 +863,10 @@ server <- function(input, output, session) {
                                         return this.value
                                         }
                                         }")
-    
+    if (nrow(cognitiveRed) == 0) {
+      highchart() %>%
+        hc_title(text = "Select Countries to Display")
+    } else {
     highchart() %>% 
       hc_chart(type = "bar") %>% 
       hc_add_series(cognitiveRed, "errorbar", 
@@ -880,6 +892,7 @@ server <- function(input, output, session) {
                #align = "center",
                tickmarkPlacement = lab.breaks[[input$CogVars]]) %>%
       hc_tooltip(formatter = JS(tooltipJS))
+    }
   })
   
   output$boxBeh <- renderUI({
@@ -915,6 +928,11 @@ server <- function(input, output, session) {
                       ' <br> Upper Limit: ' + Math.round((this.point.highOnl + Number.EPSILON) * 100) / 100)
                       }")
       
+      if (nrow(behaviorRedIso) == 0) {
+        highchart() %>%
+          hc_title(text = "Select Countries to Display") %>%
+        hw_grid(ncol = 1, rowheight = "400")
+      } else {
       hcPers <- highchart() %>% 
         hc_chart(type = "bar") %>% 
         hc_add_series(behaviorRedIso, "errorbar", 
@@ -955,6 +973,7 @@ server <- function(input, output, session) {
       lst <- list(hcPers, hcOnli)  
       
       hw_grid(lst, ncol = 2, rowheight = "400")
+      }
       
     } else {
       
@@ -998,6 +1017,11 @@ server <- function(input, output, session) {
                             }
                             }")
       
+      if (nrow(behaviorRed) == 0) {
+        highchart() %>%
+          hc_title(text = "Select Countries to Display") %>%
+        hw_grid(ncol = 1, rowheight = "400")
+      } else {
       highchart() %>% 
         hc_chart(type = "bar") %>% 
         hc_add_series(behaviorRed, "errorbar", 
@@ -1021,6 +1045,7 @@ server <- function(input, output, session) {
                  tickmarkPlacement = seq(0,7,1)) %>%
         hc_tooltip(formatter = JS(tooltipJS)) %>%
         hw_grid(ncol = 1, rowheight = "400")
+      }
     }
   })
   
@@ -1081,6 +1106,154 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
+      
+      min <- list(gov = 1,
+                 comRule = 1,
+                 comPunish = 1,
+                 comOrg = 1,
+                 covidHope = -3,
+                 covidEff = -3,
+                 lone = 1,
+                 para = 0,
+                 consp = 0,
+                 behWash = -3,
+                 behAvoid = -3,
+                 isoPers = 0,
+                 isoOnl = 0,
+                 affAnx = 1,
+                 affBor = 1,
+                 affCalm = 1,
+                 affContent = 1,
+                 affDepr = 1,
+                 affEnerg = 1,
+                 affExc = 1,
+                 affNerv = 1,
+                 affExh = 1,
+                 affInsp = 1,
+                 affRel = 1,
+                 affHighPos = 1,
+                 affHighNeg = 1,
+                 affLowPos = 1,
+                 affLowNeg = 1)
+      
+      max <- list(gov = 6,
+                  comRule = 6,
+                  comPunish = 6,
+                  comOrg = 6,
+                  covidHope = 3,
+                  covidEff = 3,
+                  lone = 5,
+                  para = 10,
+                  consp = 10,
+                  behWash = 3,
+                  behAvoid = 3,
+                  isoPers = 7,
+                  isoOnl = 7,
+                  affAnx = 5,
+                  affBor = 5,
+                  affCalm = 5,
+                  affContent = 5,
+                  affDepr = 5,
+                  affEnerg = 5, 
+                  affExc = 5, 
+                  affNerv = 5, 
+                  affExh = 5, 
+                  affInsp = 5, 
+                  affRel = 5,
+                  affHighPos = 5, 
+                  affHighNeg = 5,
+                  affLowPos = 5, 
+                  affLowNeg = 5)
+      lab.x.ends <- list(gov = c("1<br>unclear", "6<br>clear"), 
+                       comRule = c("1<br>not at all", "6<br>very much"),
+                       comPunish = c("1<br>not at all", "6<br>very much"),
+                       comOrg = c("1<br>not at all", "6<br>very much"),
+                       covidHope = c("-3<br>disagree", "3<br>agree"), 
+                       covidEff = c("-3<br>disagree", "3<br>agree"), 
+                       lone = c("1<br>Never", "5<br>All the time"),
+                       para = c("0<br>Not at all", "10<br>Very much"),
+                       consp = c("0%", "100%"),
+                       behWash = c("-3<br>disagree", "3<br>agree"), 
+                       behAvoid = c("-3<br>disagree", "3<br>agree"),
+                       isoPers = c(1,7),
+                       isoOnl = c(1,7),
+                       affAnx = c("1<br>not at all", "5<br>very much"),
+                       affBor = c("1<br>not at all", "5<br>very much"),
+                       affCalm = c("1<br>not at all", "5<br>very much"),
+                       affContent = c("1<br>not at all", "5<br>very much"),
+                       affDepr = c("1<br>not at all", "5<br>very much"),
+                       affEnerg = c("1<br>not at all", "5<br>very much"),
+                       affExc = c("1<br>not at all", "5<br>very much"),
+                       affNerv = c("1<br>not at all", "5<br>very much"),
+                       affExh = c("1<br>not at all", "5<br>very much"),
+                       affInsp = c("1<br>not at all", "5<br>very much"),
+                       affRel = c("1<br>not at all", "5<br>very much"),
+                       affHighPos = c("1<br>not at all", "5<br>very much"),
+                       affHighNeg = c("1<br>not at all", "5<br>very much"),
+                       affLowPos = c("1<br>not at all", "5<br>very much"),
+                       affLowNeg = c("1<br>not at all", "5<br>very much"))
+      lab.y.ends <- list(gov = c("unclear 1", "clear 6"), 
+                         comRule = c("not at all 1", "very much 6"),
+                         comPunish = c("not at all 1", "very much 6"),
+                         comOrg = c("not at all 1", "very much 6"),
+                         covidHope = c("disagree -3", "agree 3"), 
+                         covidEff = c("disagree -3", "agree 3"), 
+                         lone = c("Never 1", "All the time 5"),
+                         para = c("Not at all 0", "Very much 10"),
+                         consp = c("0%", "100%"),
+                         behWash = c("disagree -3", "agree 3"), 
+                         behAvoid = c("disagree -3", "agree 3"), 
+                         isoPers = c(1,7),
+                         isoOnl = c(1,7),
+                         affAnx = c("not at all 1", "very much 5"),
+                         affBor = c("not at all 1", "very much 5"),
+                         affCalm = c("not at all 1", "very much 5"),
+                         affContent = c("not at all 1", "very much 5"),
+                         affDepr = c("not at all 1", "very much 5"),
+                         affEnerg = c("not at all 1", "very much 5"),
+                         affExc = c("not at all 1", "very much 5"),
+                         affNerv = c("not at all 1", "very much 5"),
+                         affExh = c("not at all 1", "very much 5"),
+                         affInsp = c("not at all 1", "very much 5"),
+                         affRel = c("not at all 1", "very much 5"),
+                         affHighPos = c("not at all 1", "very much 5"),
+                         affHighNeg = c("not at all 1", "very much 5"),
+                         affLowPos = c("not at all 1", "very much 5"),
+                         affLowNeg = c("not at all 1", "very much 5"))
+      
+      # lab.ticks <- list(covidHope = c("0"), 
+      #                   covidEff = c("0"), 
+      #                   lone = c("0"),
+      #                   para = c("0"),
+      #                   consp = c("0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"))
+      # lab.breaks <- list(covidHope = seq(0,7,1), 
+      #                    covidEff = seq(0,7,1), 
+      #                    lone = seq(1,5,1),
+      #                    para = seq(0,10,1),
+      #                    consp = seq(0,10,1))
+      
+      lab.ends.x.js <- paste0("function(){console.log(this);
+                                        if(this.isFirst){
+                                        return '",
+                            lab.x.ends[input$CorX][[1]][1],
+                            "'} else if(this.isLast) {return '",
+                            lab.x.ends[input$CorX][[1]][2],
+                            "'} else {
+                                        return this.value
+                                        }
+                                        }")
+      
+      lab.ends.y.js <- paste0("function(){console.log(this);
+                                        if(this.isFirst){
+                                        return '",
+                              lab.y.ends[input$CorY][[1]][1],
+                              "'} else if(this.isLast) {return '",
+                              lab.y.ends[input$CorY][[1]][2],
+                              "'} else {
+                                        return this.value
+                                        }
+                                        }")
+      
       tooltipJS <- paste0("function(){
                       return ('Country: ' + this.point.coded_country + 
                       ' <br> ",varLab[input$CorX],": ' + Math.round((this.x+ Number.EPSILON) * 100) / 100 + 
@@ -1096,8 +1269,16 @@ server <- function(input, output, session) {
                       minSize = 8, maxSize = "30%", showInLegend = F
         ) %>%
         hc_title(text = "PsyCorona Bubble Chart") %>%
-        hc_xAxis(title = list(text = as.character(varLab[input$CorX]))) %>%
-        hc_yAxis(title = list(text = as.character(varLab[input$CorY]))) %>%
+        hc_xAxis(title = list(text = as.character(varLab[input$CorX])),
+                 min = min[[input$CorX]],
+                 max = max[[input$CorX]],
+                 tickInterval = 1,
+                 labels = list(formatter = JS(lab.ends.x.js))) %>%
+        hc_yAxis(title = list(text = as.character(varLab[input$CorY])),
+                 min = min[[input$CorY]],
+                 max = max[[input$CorY]],
+                 tickInterval = 1,
+                 labels = list(formatter = JS(lab.ends.y.js))) %>%
         hc_tooltip(formatter = JS(tooltipJS))
     }
   })
