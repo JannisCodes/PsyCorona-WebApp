@@ -43,7 +43,7 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
 
   var bars = svg.selectAll('rect').data(data);
   bars.enter().append('rect')
-      .attr('x',      150)
+      .attr('x',      170)
       .attr('y',      function(d, i) { return i * col_heigth() + col_top(); })
       .attr('width',  function(d) { return d.y * col_width(); })
       .attr('height', col_heigth() * 0.9)
@@ -60,7 +60,7 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
       });
   bars.transition()
     .duration(500)
-      .attr('x',      150)
+      .attr('x',      170)
       .attr('y',      function(d, i) { return i * col_heigth() + col_top(); })
       .attr('width',  function(d) { return d.y * col_width(); })
       .attr('height', col_heigth() * 0.9)
@@ -85,13 +85,13 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
   // Numeric labels
   var totals = svg.selectAll().data(data);
   totals.enter().append('text')
-      .attr('x', function(d) { return ((d.y * col_width()) + 150) * 1.01; })
+      .attr('x', function(d) { return ((d.y * col_width()) + 170) * 1.01; })
       .attr('y', function(d, i) { return i * col_heigth() + (col_heigth() / 2) + col_top(); })
       .style('font-family', 'sans-serif')
       .text(function(d) {return d.ylabel; });
   totals.transition()
       .duration(1000)
-      .attr('x', function(d) { return ((d.y * col_width()) + 150) * 1.01; })
+      .attr('x', function(d) { return ((d.y * col_width()) + 170) * 1.01; })
       .attr('y', function(d, i) { return i * col_heigth() + (col_heigth() / 2) + col_top(); })
       .attr('d', function(d) { return d.x; })
       .text(function(d) {return d.ylabel; });
@@ -148,7 +148,7 @@ ui <- dashboardPage(
       .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }
       .btn.radiobtn.btn-primary {float: center!important;
                                  display: block;
-                                 width: 150px}
+                                 width: 160px}
       '
     ),
     tags$style("@import url(https://use.fontawesome.com/releases/v5.13.0/css/all.css);"),
