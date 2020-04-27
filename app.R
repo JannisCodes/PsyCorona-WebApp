@@ -275,8 +275,9 @@ ui <- dashboardPage(
                                       highchartOutput("boxGov"),
                                       "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
-                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
-                                      another country can have a multitude of reasons (including, when most people answered the question)."
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Community Response", 
                                       value = 2,
@@ -295,8 +296,9 @@ ui <- dashboardPage(
                                       highchartOutput("boxCom"),
                                       "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
-                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
-                                      another country can have a multitude of reasons (including, when most people answered the question)."
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Cognitive Response",
                                       value = 3,
@@ -316,8 +318,9 @@ ui <- dashboardPage(
                                       highchartOutput("boxCog"),
                                       "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
-                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
-                                      another country can have a multitude of reasons (including, when most people answered the question)."
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Behavioral Response",
                                       value = 4,
@@ -336,8 +339,9 @@ ui <- dashboardPage(
                                       htmlOutput("boxBeh"),
                                       "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
                                       of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
-                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that a country being higher or lower than 
-                                      another country can have a multitude of reasons (including, when most people answered the question)."
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Emotional Response",
                                       value = 5,
@@ -376,7 +380,7 @@ ui <- dashboardPage(
                     status = "primary",
                     multiInput(
                       inputId = "psych_country_selection",
-                      label = "Countries (all countries n > 20):", 
+                      label = "Please select the countries you are interested in (all countries n > 20):", 
                       choices = NULL,
                       choiceNames = lapply(seq_along(ctry.red$coded_country), 
                                            function(i) tagList(tags$img(src = ctry.red$flag[i],
@@ -433,7 +437,7 @@ ui <- dashboardPage(
                    h4("Select Region:"),
                    multiInput(
                      inputId = "cor_country_selection",
-                     label = "Countries (all countries n > 20):", 
+                     label = "Please select the countries you are interested in (all countries n > 20):", 
                      choices = NULL,
                      choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
                                           function(i) tagList(tags$img(src = ctry.only.red$flag[i],
@@ -647,10 +651,10 @@ server <- function(input, output, session) {
   # })
 
   
-  # shinyalert(title = "Mobile Version", 
-  #            text = "This application is currently in development. 
+  # shinyalert(title = "Preview Version",
+  #            text = "This application is currently in development.
   #            To protect the privacy and confidentiality of our participants this beta version relies on simulated data.",
-  #            type = "info",
+  #            type = "warning",
   #            animation = TRUE,
   #            confirmButtonCol = "#3b738f"
   #            )
