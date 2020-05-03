@@ -142,6 +142,7 @@ ui <- dashboardPage(
     tags$head(tags$meta(name = "viewport", content = "width=1600"), uiOutput("body")),
     tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")),
     #tags$head(tags$link(rel="shortcut icon", href="https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/faviconData.png")),
+    tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
@@ -181,9 +182,9 @@ ui <- dashboardPage(
         url = "https://psycorona.shinyapps.io/WebApp/",
         image = "https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/media.png",
         image_alt = "PsyCorona Data Tool",
-        #twitter_creator = "@JannisWrites",
-        twitter_card_type = "summary"
-        #twitter_site = "@JannisWrites"
+        twitter_creator = "@JannisWrites",
+        twitter_card_type = "summary",
+        twitter_site = "@JannisWrites"
         ),
     
     shinyjs::useShinyjs(),
@@ -665,7 +666,7 @@ server <- function(input, output, session) {
               title = paste(icon("warning"),"Data Notification"),
               content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
               For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
-              This means the data might not be representative of how countries are doing right now.",
+              This means the data might not be representative of how countries are doing right now. Both <b> nationally representative and developmental displays of the data will be available soon</b>.",
               style = "warning")
   
   output$sample.bar.NA <- renderText({
