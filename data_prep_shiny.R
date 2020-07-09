@@ -25,16 +25,17 @@ data_prep <- function(){
   dt5newVars$coded_country[dt5newVars$coded_country == ""] <- NA # set empty cells in coded_country column to NA
   unique(dt5newVars$coded_country)[!unique(dt5newVars$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
   
+  
   # Calculate compound scores
   dt5newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
   dt5newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt5newVars %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
   dt5newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
   dt5newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
-  dt5newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("lone")), min = 1, max = 5)$scores
+  dt5newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(matches("^lone[0][[:digit:]]$")), min = 1, max = 5)$scores # changed selection to use RE
   dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores
   dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores
-  dt5newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("para")), min = 0, max = 10)$scores
-  dt5newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("consp")), min = 0, max = 10)$scores
+  dt5newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(matches("^para[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
+  dt5newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(matches("^consp[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
   
   
   # The remaining part is simply a copy from the original data cleaning script 
