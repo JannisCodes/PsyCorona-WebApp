@@ -5,22 +5,19 @@ library(ggplot2)
 library(stats)
 library(shinydashboard)
 library(metathis)
-#library(dygraphs)
-#library(RColorBrewer)
 library(stringr)
-#library(DT)
 library(shinyjs)
 library(shinyWidgets)
 library(r2d3)
 library(radarchart)
 library(haven)
-#library(leaflet)
 library(highcharter)
 library(rgeos)
 library(scales)
 library(grDevices)
 library(shinyalert)
 library(shinyBS)
+source("data_prep_shiny.R")
 
 # R Studio Clean-Up:
 #cat("\014") # clear console
@@ -29,7 +26,11 @@ library(shinyBS)
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # usually set by project
 
 # load data:
+if (!file.exists("data/shinyDataAggregated.RData")) {
+  data_prep()
+}
 load("data/shinyDataAggregated.RData")
+
 
 r2d3_script <- "
 // !preview r2d3 data= data.frame(y = 0.1, ylabel = '1%', fill = '#E69F00', mouseover = 'green', label = 'one', id = 1)
