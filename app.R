@@ -5,22 +5,25 @@ library(ggplot2)
 library(stats)
 library(shinydashboard)
 library(metathis)
-#library(dygraphs)
-#library(RColorBrewer)
 library(stringr)
-#library(DT)
 library(shinyjs)
 library(shinyWidgets)
 library(r2d3)
 library(radarchart)
 library(haven)
-#library(leaflet)
 library(highcharter)
 library(rgeos)
 library(scales)
 library(grDevices)
 library(shinyalert)
 library(shinyBS)
+source("data_prep_shiny.R")
+source("modules.R")
+
+
+
+
+
 
 # R Studio Clean-Up:
 #cat("\014") # clear console
@@ -29,7 +32,11 @@ library(shinyBS)
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # usually set by project
 
 # load data:
+if (!file.exists("data/shinyDataAggregated.RData")) {
+  data_prep()
+}
 load("data/shinyDataAggregated.RData")
+
 
 r2d3_script <- "
 // !preview r2d3 data= data.frame(y = 0.1, ylabel = '1%', fill = '#E69F00', mouseover = 'green', label = 'one', id = 1)
@@ -101,6 +108,17 @@ r2d3_file <- tempfile()
 writeLines(r2d3_script, r2d3_file)
 
 
+all_valid_ctry = ctry.only.red$coded_country
+sub_valid_ctry = ctry.only.red$coded_country[1:9]
+weighted_valid_ctry = ctry.only.red$coded_country[10:25]
+
+data1 <- ctry.scales
+data2 <- ctry.scales %>% filter(coded_country %in% sub_valid_ctry)
+data3 <- ctry.scales %>% filter(coded_country %in% weighted_valid_ctry)
+
+
+# UI
+{
 ui <- dashboardPage(
   title = "PsyCorona: Data Visualization",
   dashboardHeader(title=span( icon("fas fa-virus"), "PsyCorona Data Tool") #HTML(paste(icon("virus"), "PsyCorona Data Tool")),
@@ -112,7 +130,11 @@ ui <- dashboardPage(
                   ),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
+      menuItem("Our Sample", icon = icon("fas fa-users"),
+               menuSubItem("Unweighted", tabName = "subitem_sample1"),
+               menuSubItem("Nationally representative", tabName = "subitem_sample2"),
+               menuSubItem("Weighted", tabName = "subitem_sample3")
+      ),
       menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
       menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
       menuItem("Data", tabName = "data", icon = icon("fas fa-share-square")),
@@ -189,84 +211,9 @@ ui <- dashboardPage(
     
     shinyjs::useShinyjs(),
     tabItems(
-      tabItem(tabName = "sample",
-              useShinyalert(),
-              h3("Our Sample"),
-              bsAlert("dataAlert"),
-              
-              fluidRow(
-                box(width = 12,
-                    div(style="display:inline-block;width:100%;text-align:center;",
-                        radioGroupButtons(
-                          inputId = "var", 
-                          label = "Participant characteristics:", 
-                          selected = "languages",
-                          status = "primary",
-                          #justified = T,
-                          #individual = T,
-                          choiceNames = c("Survey language", "Gender", "Age", "Education", "Political orientation"),
-                          choiceValues = c("languages", "gender", "age", "education", "political")
-                          #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
-                        )
-                    ),
-                    h3(textOutput("sample.bar.NA"), align = "center"),
-                    d3Output("d3.bar"),
-                    textOutput("SampleTxt"), align = "center")
-                #)
-              ),
-              fluidRow(
-                box(
-                  status = "primary",
-                  width = 6,
-                  tags$strong("World Map (sample sizes)"),
-                  highchartOutput("freqPlot")
-                ),
-                box(
-                  shinyjs::useShinyjs(),
-                  id = "sample-controls",
-                  width = 6,
-                  #height = "600px",
-                  title = "Controls",
-                  solidHeader = T,
-                  status = "primary",
-                  #"Use these controls to ",
-                  #br(), 
-                  
-                  multiInput(
-                    inputId = "sample_country_selection",
-                    label = "Please select the countries you are interested in (all countries n > 20):", 
-                    choices = NULL,
-                    choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
-                                         function(i) tagList(tags$img(src = ctry.only.red$flag[i],
-                                                                      width = 20, 
-                                                                      height = 15), 
-                                                             ctry.only.red$coded_country[i],
-                                                             paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
-                    choiceValues = ctry.only.red$coded_country,
-                    selected = ctry.only.red$coded_country
-                  ),
-                  
-                  hr(),
-                  
-                  div(style="display:inline-block;width:100%;text-align: center;",
-                      actionBttn(
-                        inputId = "sample_country_none", 
-                        label = "None",
-                        style = "simple", 
-                        color = "primary",
-                        size = "sm"),
-                      HTML("&nbsp;&nbsp;"),
-                      actionBttn(
-                        inputId = "sample_country_all", 
-                        label = "All",
-                        style = "simple", 
-                        color = "primary",
-                        size = "sm")
-                      
-                  )
-                )
-              )
-      ),
+      tabItem("subitem_sample1", submenu_sampleUI('submenu_sample1')),
+      tabItem("subitem_sample2", submenu_sampleUI('submenu_sample2')),
+      tabItem("subitem_sample3", submenu_sampleUI('submenu_sample3')),
       tabItem(tabName = "Variables",
               box(width = 12, solidHeader = TRUE,
                   navbarPage(title = "Domain:",
@@ -633,8 +580,9 @@ ui <- dashboardPage(
     )
     )
   )
+}
 
-
+# Server
 server <- function(input, output, session) {
   
   # observeEvent(input$dimension[1], {
@@ -669,70 +617,12 @@ server <- function(input, output, session) {
               This means the data might not be representative of how countries are doing right now. Both <b> nationally representative and developmental displays of the data will be available soon</b>.",
               style = "warning")
   
-  output$sample.bar.NA <- renderText({
-    #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
-    
-    test <- ctry.scales %>%
-      filter(coded_country %in% input$sample_country_selection) %>%
-      select(starts_with(input$var)) %>%
-      t() %>%
-      as.data.frame()
-    colnames(test) <- input$sample_country_selection
-    test <- test %>%
-      mutate(n = rowSums(., na.rm=TRUE),
-             label = str_replace(rownames(.), ".*_", "")) %>%
-      filter(n>0,
-             label != "<NA>")
-    
-    ifelse(sum(test$n)<20, "Not enough data to display summary","")
-  })
   
-  output$SampleTxt <- renderText({
-    #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
-    
-    explanation <- list(languages = "Note: The languages people used to answer the survey. Below, you can select the countries you are interested in.", 
-                        gender = "Note: The gender people identified with.",
-                        age = "Note: The age of people who filled out the survey. ",
-                        education = "Note: The education level of people who filled out the survey. ",
-                        political = "Note: The political orientation of people who filled out the survey.")
-    explanation[[input$var]]
-  })
+  select_var <- callModule(submenu_sample, "submenu_sample1", data=data1)
+  select_var <- callModule(submenu_sample, "submenu_sample2", data=data2)
+  select_var <- callModule(submenu_sample, "submenu_sample3", data=data3)
   
-  output$d3.bar <- renderD3({
-    #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
-    #input <- list(var = "gender", sample_country_selection = c("Poland", "Romania", "Albania"))
-    
-    dem <- ctry.scales %>%
-      filter(coded_country %in% input$sample_country_selection) %>%
-      select(starts_with(input$var)) %>%
-      t() %>%
-      as.data.frame()
-    colnames(dem) <- input$sample_country_selection
-    dem %>%
-      mutate(n = rowSums(., na.rm=TRUE),
-             label = str_replace(rownames(.), ".*_", "")) %>%
-      arrange(desc(n)) %>%
-      filter(n > 0,
-             label != "<NA>") %>%
-      mutate(y = n,
-             ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
-             fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
-             mouseover = "#2a5674") %>%
-      r2d3(r2d3_file)
-  })
-  
-  output$freqPlot <- renderHighchart({
-    hcmap(download_map_data = FALSE,
-          data = world.n %>% filter(coded_country %in% input$sample_country_selection), 
-          value = "n",
-          joinBy = c("iso-a2", "iso_a2"), name = "sample size",
-          #dataLabels = list(enabled = TRUE, format = '{point.name}'),
-          borderColor = "#FAFAFA", borderWidth = 0.1,
-          tooltip = list(valueDecimals = 0, valuePrefix = "n = "))%>% 
-      hc_mapNavigation(enabled = TRUE) %>%
-      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic") 
-  })
-  #Color schemes: https://carto.com/carto-colors/
+
   
   output$boxGov <- renderHighchart({
     # for testing:
@@ -1328,26 +1218,11 @@ server <- function(input, output, session) {
     }
   })
   
-
+  
   observeEvent(input$reset_input_ctry, {
     shinyjs::reset("country_controls")
   })
   
-  observeEvent(input$sample_country_all, {
-    updateMultiInput(
-      session = session,
-      inputId = "sample_country_selection",
-      selected = ctry.only.red$coded_country
-    )
-  })
-  
-  observeEvent(input$sample_country_none, {
-    updateMultiInput(
-      session = session,
-      inputId = "sample_country_selection",
-      selected = character(0)
-    )
-  })
   
   observeEvent(input$cor_country_all, {
     updateMultiInput(
@@ -1365,11 +1240,20 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  
+  
+  
+  
+  
+  
   shinyjs::onclick("menu",
                    shinyjs::toggle(id = "sideFooter", anim = F))
   
   shiny:::flushReact()
+
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
