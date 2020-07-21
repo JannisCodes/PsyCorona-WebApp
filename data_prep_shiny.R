@@ -47,7 +47,7 @@ data_prep <- function(){
   # get representative vector for representative scales
   rep_cntry = unique(filter(shiny_prep,!is.na(coded_country) & representative == "Yes")$coded_country)
   
-  # Global #
+  
   
   ctry.scales <- shiny_prep %>%
     filter(!is.na(coded_country)) %>%
@@ -131,6 +131,8 @@ data_prep <- function(){
       #pfs = mean(pfs.m, na.rm = T),
     )
   ctry.scales <- merge(x = ctry.scales, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
+  
+  # Global #
   
   global.scales <- shiny_prep %>%
     filter(!is.na(coded_country)) %>%
@@ -217,7 +219,97 @@ data_prep <- function(){
       iso_a2 = NA,
       flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg"
     )
-  ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
+  
+  # Representative aggregate #
+  
+  representative.scales <- shiny_prep %>%
+    filter(!is.na(coded_country) & representative == "Yes") %>%
+    dplyr::summarize(
+      coded_country = "representative",
+      n = n(),
+      
+      affAnx = mean(affAnx, na.rm = T),
+      affBor = mean(affBor, na.rm = T),
+      affCalm = mean(affCalm, na.rm = T),
+      affContent = mean(affContent, na.rm = T),
+      affDepr = mean(affDepr, na.rm = T),
+      affEnerg = mean(affEnerg, na.rm = T),
+      affExc = mean(affExc, na.rm = T),
+      affNerv = mean(affNerv, na.rm = T),
+      affExh = mean(affExh, na.rm = T),
+      affInsp = mean(affInsp, na.rm = T),
+      affRel = mean(affRel, na.rm = T),
+      affHighPos = mean(affHighPos.m, na.rm = T),
+      affHighNeg = mean(affHighNeg.m, na.rm = T),
+      affLowPos = mean(affLowPos.m, na.rm = T),
+      affLowNeg = mean(affLowNeg.m, na.rm = T),
+      
+      #ext = mean(ext.m, na.rm = T),
+      
+      gov = mean(extC19Msg, na.rm = T),
+      gov.sd = sd(extC19Msg, na.rm = T),
+      gov.se = gov.sd/sqrt(n),
+      
+      comRule = mean(c19IsStrict, na.rm = T),
+      comRule.sd = sd(c19IsStrict, na.rm = T),
+      comRule.se = comRule.sd/sqrt(n),
+      
+      comPunish = mean(c19IsPunish, na.rm = T),
+      comPunish.sd = sd(c19IsPunish, na.rm = T),
+      comPunish.se = comPunish.sd/sqrt(n),
+      
+      comOrg = mean(c19IsOrg, na.rm = T),
+      comOrg.sd = sd(c19IsOrg, na.rm = T),
+      comOrg.se = comOrg.sd/sqrt(n),
+      
+      lone = mean(lone.m, na.rm = T),
+      lone.sd = sd(lone.m, na.rm = T),
+      lone.se = lone.sd/sqrt(n),
+      
+      #bor = mean(bor.m, na.rm = T),
+      isoPers = mean(isoPers.m, na.rm = T),
+      isoPers.sd = sd(isoPers.m, na.rm = T),
+      isoPers.se = isoPers.sd/sqrt(n),
+      
+      isoOnl = mean(isoOnl.m, na.rm = T),
+      isoOnl.sd = sd(isoOnl.m, na.rm = T),
+      isoOnl.se = isoOnl.sd/sqrt(n),
+      
+      #beh = mean(beh.m, na.rm = T),
+      behWash = mean(c19perBeh01, na.rm = T),
+      behWash.sd = sd(c19perBeh01, na.rm = T),
+      behWash.se = behWash.sd/sqrt(n),
+      
+      behAvoid = mean(c19perBeh02, na.rm = T),
+      behAvoid.sd = sd(c19perBeh02, na.rm = T),
+      behAvoid.se = behAvoid.sd/sqrt(n),
+      
+      covidHope = mean(c19Hope, na.rm = T),
+      covidHope.sd = sd(c19Hope, na.rm = T),
+      covidHope.se = covidHope.sd/sqrt(n),
+      
+      covidEff = mean(c19Eff, na.rm = T),
+      covidEff.sd = sd(c19Eff, na.rm = T),
+      covidEff.se = covidEff.sd/sqrt(n),
+      
+      para = mean(para.m, na.rm = T),
+      para.sd = sd(para.m, na.rm = T),
+      para.se = para.sd/sqrt(n),
+      
+      consp = mean(consp.m, na.rm = T),
+      consp.sd = sd(consp.m, na.rm = T),
+      consp.se = consp.sd/sqrt(n),
+      
+      #jobinsec = mean(jobinsec.m, na.rm = T),
+      #pfs = mean(pfs.m, na.rm = T),
+      #jobinsec = mean(jobinsec.m, na.rm = T),
+      #pfs = mean(pfs.m, na.rm = T),
+      iso_a2 = NA,
+      flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg"
+    )
+  
+  
+  ctry.scales <- rbind(global.scales, representative.scales, ctry.scales); rm(global.scales, representative.scales)
   
   scramble20 <- function(x) {ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x)}
   scramble50 <- function(x) {ifelse(x<50, abs(x+sample(-5:5, 1, replace = T)), x)}
