@@ -44,6 +44,11 @@ data_prep <- function(){
   shiny_prep <- merge(x = dt5newVars, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
   shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
   
+  # get representative vector for representative scales
+  rep_cntry = unique(filter(shiny_prep,!is.na(coded_country) & representative == "Yes")$coded_country)
+  
+  # Global #
+  
   ctry.scales <- shiny_prep %>%
     filter(!is.na(coded_country)) %>%
     dplyr::group_by(coded_country) %>%
@@ -323,9 +328,11 @@ data_prep <- function(){
   
   latest.DateTime <- format(max(ymd_hms(shiny_prep$EndDate, tz = "CET"), na.rm=T), "%d %B, %Y - %H:%M %Z")
   
-  
+  # Representative #
+  ctry.scales.representative <- ctry.scales %>%
+    filter(coded_country %in% rep_cntry)
   
   # export for Shiny
-  save(ctry.scales, world.n, ctry.red, ctry.only.red, latest.DateTime, 
+  save(ctry.scales, ctry.scales.representative, world.n, ctry.red, ctry.only.red, latest.DateTime, 
        file = "data/shinyDataAggregated.RData")
 }
