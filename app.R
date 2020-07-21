@@ -4,22 +4,20 @@ library(tidyr)
 library(ggplot2)
 library(stats)
 library(shinydashboard)
-#library(dygraphs)
-#library(RColorBrewer)
+library(metathis)
 library(stringr)
-#library(DT)
 library(shinyjs)
 library(shinyWidgets)
 library(r2d3)
 library(radarchart)
 library(haven)
-#library(leaflet)
 library(highcharter)
 library(rgeos)
 library(scales)
 library(grDevices)
 library(shinyalert)
 library(shinyBS)
+source("data_prep_shiny.R")
 
 # R Studio Clean-Up:
 #cat("\014") # clear console
@@ -28,7 +26,11 @@ library(shinyBS)
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # usually set by project
 
 # load data:
+if (!file.exists("data/shinyDataAggregated.RData")) {
+  data_prep()
+}
 load("data/shinyDataAggregated.RData")
+
 
 r2d3_script <- "
 // !preview r2d3 data= data.frame(y = 0.1, ylabel = '1%', fill = '#E69F00', mouseover = 'green', label = 'one', id = 1)
@@ -42,7 +44,7 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
 
   var bars = svg.selectAll('rect').data(data);
   bars.enter().append('rect')
-      .attr('x',      150)
+      .attr('x',      170)
       .attr('y',      function(d, i) { return i * col_heigth() + col_top(); })
       .attr('width',  function(d) { return d.y * col_width(); })
       .attr('height', col_heigth() * 0.9)
@@ -59,7 +61,7 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
       });
   bars.transition()
     .duration(500)
-      .attr('x',      150)
+      .attr('x',      170)
       .attr('y',      function(d, i) { return i * col_heigth() + col_top(); })
       .attr('width',  function(d) { return d.y * col_width(); })
       .attr('height', col_heigth() * 0.9)
@@ -84,13 +86,13 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
   // Numeric labels
   var totals = svg.selectAll().data(data);
   totals.enter().append('text')
-      .attr('x', function(d) { return ((d.y * col_width()) + 150) * 1.01; })
+      .attr('x', function(d) { return ((d.y * col_width()) + 170) * 1.01; })
       .attr('y', function(d, i) { return i * col_heigth() + (col_heigth() / 2) + col_top(); })
       .style('font-family', 'sans-serif')
       .text(function(d) {return d.ylabel; });
   totals.transition()
       .duration(1000)
-      .attr('x', function(d) { return ((d.y * col_width()) + 150) * 1.01; })
+      .attr('x', function(d) { return ((d.y * col_width()) + 170) * 1.01; })
       .attr('y', function(d, i) { return i * col_heigth() + (col_heigth() / 2) + col_top(); })
       .attr('d', function(d) { return d.x; })
       .text(function(d) {return d.ylabel; });
@@ -138,14 +140,17 @@ ui <- dashboardPage(
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
-    tags$head(tags$meta(name = "viewport", content = "width=1600"),uiOutput("body")),
+    tags$head(tags$meta(name = "viewport", content = "width=1600"), uiOutput("body")),
+    tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")),
+    #tags$head(tags$link(rel="shortcut icon", href="https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/faviconData.png")),
+    tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
       .bttn-simple.bttn-primary {background-color: #3c8dbe!important; }
       .btn.radiobtn.btn-primary {float: center!important;
                                  display: block;
-                                 width: 150px}
+                                 width: 160px}
       '
     ),
     tags$style("@import url(https://use.fontawesome.com/releases/v5.13.0/css/all.css);"),
@@ -171,6 +176,18 @@ ui <- dashboardPage(
                                     Shiny.onInputChange('dimension', dimension);
                                 });
                           ")),
+    meta() %>%
+      meta_social(
+        title = "PsyCorona: Data Visualization",
+        description = paste0("A tool to explore the patterns of psychological reactions to the Covid-19 epidemic across ", nrow(ctry.only.red), " countries."),
+        url = "https://psycorona.shinyapps.io/WebApp/",
+        image = "https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/media.png",
+        image_alt = "PsyCorona Data Tool",
+        twitter_creator = "@JannisWrites",
+        twitter_card_type = "summary",
+        twitter_site = "@JannisWrites"
+        ),
+    
     shinyjs::useShinyjs(),
     tabItems(
       tabItem(tabName = "sample",
@@ -218,7 +235,7 @@ ui <- dashboardPage(
                   
                   multiInput(
                     inputId = "sample_country_selection",
-                    label = "Countries (all countries n > 20):", 
+                    label = "Please select the countries you are interested in (all countries n > 20):", 
                     choices = NULL,
                     choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
                                          function(i) tagList(tags$img(src = ctry.only.red$flag[i],
@@ -257,7 +274,12 @@ ui <- dashboardPage(
                              id = "dataTabs",
                              tabPanel("Government Reponse",
                                       value = 1,
-                                      highchartOutput("boxGov")
+                                      highchartOutput("boxGov"),
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Community Response", 
                                       value = 2,
@@ -273,7 +295,12 @@ ui <- dashboardPage(
                                             #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                                           )
                                       ),
-                                      highchartOutput("boxCom")
+                                      highchartOutput("boxCom"),
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Cognitive Response",
                                       value = 3,
@@ -290,7 +317,12 @@ ui <- dashboardPage(
                                             #checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
                                           )
                                       ),
-                                      highchartOutput("boxCog")
+                                      highchartOutput("boxCog"),
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Behavioral Response",
                                       value = 4,
@@ -306,7 +338,12 @@ ui <- dashboardPage(
                                             choiceValues = c("behWash", "behAvoid", "iso")
                                           )
                                       ),
-                                      htmlOutput("boxBeh")
+                                      htmlOutput("boxBeh"),
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
+                                      of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
+                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
+                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
+                                      (b) that the data might not always be representative the entire country."
                              ),
                              tabPanel("Emotional Response",
                                       value = 5,
@@ -318,14 +355,23 @@ ui <- dashboardPage(
                                                 status = "success",
                                                 fill = TRUE,
                                                 inline = TRUE,
-                                                value = TRUE
+                                                value = FALSE
                                               )
                                             ),
-                                      chartJSRadarOutput('affect', height = "125", width = "400")
+                                      chartJSRadarOutput('affect', height = "125", width = "400"),
+                                      tags$br(),
+                                      "Note: Here you can see the emotional reactions of people. There are two ways to look at them: Emotional Categories and Individual Emotions. 
+                                      For the individual emotions, people answered how much they felt that emotion over the last week. For the emotional categories, we averaged together 
+                                      the emotions that are either high or low on arousal as well as positive or negative (negative high arousal: anxiety and nervous; negative low arousal: 
+                                      bored, exhausted, depressed; positive high arousal: energetic, excited, inspired; positive low arousal: calm, content, relaxed)"
                              ),
                              tabPanel("Cross Domain Relationships",
                                       value = 6,
-                                      highchartOutput("cor")
+                                      highchartOutput("cor"),
+                                      "Note: Here you can select two variables and plot them against each other. One bubble represents one country. 
+                                      The bigger the bubble, the more people from that country answered the question. The position of the bubble represents the average levels of the variables 
+                                      you select. This allows you to examine relationships between variables. For example, do countries that are higher in one variable also tend to be higher 
+                                      on the other variable."
                              )
                   )
               ),
@@ -336,7 +382,7 @@ ui <- dashboardPage(
                     status = "primary",
                     multiInput(
                       inputId = "psych_country_selection",
-                      label = "Countries (all countries n > 20):", 
+                      label = "Please select the countries you are interested in (all countries n > 20):", 
                       choices = NULL,
                       choiceNames = lapply(seq_along(ctry.red$coded_country), 
                                            function(i) tagList(tags$img(src = ctry.red$flag[i],
@@ -393,7 +439,7 @@ ui <- dashboardPage(
                    h4("Select Region:"),
                    multiInput(
                      inputId = "cor_country_selection",
-                     label = "Countries (all countries n > 20):", 
+                     label = "Please select the countries you are interested in (all countries n > 20):", 
                      choices = NULL,
                      choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
                                           function(i) tagList(tags$img(src = ctry.only.red$flag[i],
@@ -607,10 +653,10 @@ server <- function(input, output, session) {
   # })
 
   
-  # shinyalert(title = "Mobile Version", 
-  #            text = "This application is currently in development. 
+  # shinyalert(title = "Preview Version",
+  #            text = "This application is currently in development.
   #            To protect the privacy and confidentiality of our participants this beta version relies on simulated data.",
-  #            type = "info",
+  #            type = "warning",
   #            animation = TRUE,
   #            confirmButtonCol = "#3b738f"
   #            )
@@ -621,7 +667,7 @@ server <- function(input, output, session) {
               title = paste(icon("warning"),"Data Notification"),
               content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
               For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
-              This means the data might not be representative of how countries are doing right now.",
+              This means the data might not be representative of how countries are doing right now. Both <b> nationally representative and developmental displays of the data will be available soon</b>.",
               style = "warning")
   
   output$sample.bar.NA <- renderText({
@@ -645,11 +691,11 @@ server <- function(input, output, session) {
   output$SampleTxt <- renderText({
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     
-    explanation <- list(languages = "I have high hopes that the situation regarding coronavirus will improve. [Mean and 95%CI]", 
-                        gender = "I think that this country is able to fight the Coronavirus. [Mean and 95%CI]",
-                        age = "Mean Loneliness Scores [Mean and 95%CI]",
-                        education = "Mean State Paranoia Scores [Mean and 95%CI]",
-                        political = "Mean Conspiracy Scores [Mean and 95%CI]")
+    explanation <- list(languages = "Note: The languages people used to answer the survey. Below, you can select the countries you are interested in.", 
+                        gender = "Note: The gender people identified with.",
+                        age = "Note: The age of people who filled out the survey. ",
+                        education = "Note: The education level of people who filled out the survey. ",
+                        political = "Note: The political orientation of people who filled out the survey.")
     explanation[[input$var]]
   })
   
@@ -710,6 +756,10 @@ server <- function(input, output, session) {
     
     categories <- c("0" , "1<br>unclear", "2", "3", "4", "5", "6<br>clear")
     
+    if (nrow(governmentRed) == 0) {
+      highchart() %>%
+        hc_title(text = "Select Countries to Display")
+    } else {
     highchart() %>% 
       hc_chart(type = "bar") %>% 
       hc_add_series(governmentRed, "errorbar", 
@@ -734,6 +784,7 @@ server <- function(input, output, session) {
                #align = "center",
                tickmarkPlacement = seq(1,6,1)) %>%
       hc_tooltip(formatter = JS(tooltipJS))
+    }
   })
   
   output$boxCom <- renderHighchart({
@@ -764,6 +815,10 @@ server <- function(input, output, session) {
     
     categories <- c("0" , "1<br>not at all", "2", "3", "4", "5", "6<br>very much")
     
+    if (nrow(communityRed) == 0) {
+      highchart() %>%
+        hc_title(text = "Select Countries to Display")
+    } else {
     highchart() %>% 
       hc_chart(type = "bar") %>% 
       hc_add_series(communityRed, "errorbar", 
@@ -788,7 +843,7 @@ server <- function(input, output, session) {
                #align = "center",
                tickmarkPlacement = seq(1,6,1)) %>%
       hc_tooltip(formatter = JS(tooltipJS))
-    
+    }
   })
   
   output$boxCog <- renderHighchart({
@@ -854,7 +909,10 @@ server <- function(input, output, session) {
                                         return this.value
                                         }
                                         }")
-    
+    if (nrow(cognitiveRed) == 0) {
+      highchart() %>%
+        hc_title(text = "Select Countries to Display")
+    } else {
     highchart() %>% 
       hc_chart(type = "bar") %>% 
       hc_add_series(cognitiveRed, "errorbar", 
@@ -880,6 +938,7 @@ server <- function(input, output, session) {
                #align = "center",
                tickmarkPlacement = lab.breaks[[input$CogVars]]) %>%
       hc_tooltip(formatter = JS(tooltipJS))
+    }
   })
   
   output$boxBeh <- renderUI({
@@ -915,6 +974,11 @@ server <- function(input, output, session) {
                       ' <br> Upper Limit: ' + Math.round((this.point.highOnl + Number.EPSILON) * 100) / 100)
                       }")
       
+      if (nrow(behaviorRedIso) == 0) {
+        highchart() %>%
+          hc_title(text = "Select Countries to Display") %>%
+        hw_grid(ncol = 1, rowheight = "400")
+      } else {
       hcPers <- highchart() %>% 
         hc_chart(type = "bar") %>% 
         hc_add_series(behaviorRedIso, "errorbar", 
@@ -955,6 +1019,7 @@ server <- function(input, output, session) {
       lst <- list(hcPers, hcOnli)  
       
       hw_grid(lst, ncol = 2, rowheight = "400")
+      }
       
     } else {
       
@@ -998,6 +1063,11 @@ server <- function(input, output, session) {
                             }
                             }")
       
+      if (nrow(behaviorRed) == 0) {
+        highchart() %>%
+          hc_title(text = "Select Countries to Display") %>%
+        hw_grid(ncol = 1, rowheight = "400")
+      } else {
       highchart() %>% 
         hc_chart(type = "bar") %>% 
         hc_add_series(behaviorRed, "errorbar", 
@@ -1021,6 +1091,7 @@ server <- function(input, output, session) {
                  tickmarkPlacement = seq(0,7,1)) %>%
         hc_tooltip(formatter = JS(tooltipJS)) %>%
         hw_grid(ncol = 1, rowheight = "400")
+      }
     }
   })
   
@@ -1081,6 +1152,154 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
+      
+      min <- list(gov = 1,
+                 comRule = 1,
+                 comPunish = 1,
+                 comOrg = 1,
+                 covidHope = -3,
+                 covidEff = -3,
+                 lone = 1,
+                 para = 0,
+                 consp = 0,
+                 behWash = -3,
+                 behAvoid = -3,
+                 isoPers = 0,
+                 isoOnl = 0,
+                 affAnx = 1,
+                 affBor = 1,
+                 affCalm = 1,
+                 affContent = 1,
+                 affDepr = 1,
+                 affEnerg = 1,
+                 affExc = 1,
+                 affNerv = 1,
+                 affExh = 1,
+                 affInsp = 1,
+                 affRel = 1,
+                 affHighPos = 1,
+                 affHighNeg = 1,
+                 affLowPos = 1,
+                 affLowNeg = 1)
+      
+      max <- list(gov = 6,
+                  comRule = 6,
+                  comPunish = 6,
+                  comOrg = 6,
+                  covidHope = 3,
+                  covidEff = 3,
+                  lone = 5,
+                  para = 10,
+                  consp = 10,
+                  behWash = 3,
+                  behAvoid = 3,
+                  isoPers = 7,
+                  isoOnl = 7,
+                  affAnx = 5,
+                  affBor = 5,
+                  affCalm = 5,
+                  affContent = 5,
+                  affDepr = 5,
+                  affEnerg = 5, 
+                  affExc = 5, 
+                  affNerv = 5, 
+                  affExh = 5, 
+                  affInsp = 5, 
+                  affRel = 5,
+                  affHighPos = 5, 
+                  affHighNeg = 5,
+                  affLowPos = 5, 
+                  affLowNeg = 5)
+      lab.x.ends <- list(gov = c("1<br>unclear", "6<br>clear"), 
+                       comRule = c("1<br>not at all", "6<br>very much"),
+                       comPunish = c("1<br>not at all", "6<br>very much"),
+                       comOrg = c("1<br>not at all", "6<br>very much"),
+                       covidHope = c("-3<br>disagree", "3<br>agree"), 
+                       covidEff = c("-3<br>disagree", "3<br>agree"), 
+                       lone = c("1<br>Never", "5<br>All the time"),
+                       para = c("0<br>Not at all", "10<br>Very much"),
+                       consp = c("0%", "100%"),
+                       behWash = c("-3<br>disagree", "3<br>agree"), 
+                       behAvoid = c("-3<br>disagree", "3<br>agree"),
+                       isoPers = c(1,7),
+                       isoOnl = c(1,7),
+                       affAnx = c("1<br>not at all", "5<br>very much"),
+                       affBor = c("1<br>not at all", "5<br>very much"),
+                       affCalm = c("1<br>not at all", "5<br>very much"),
+                       affContent = c("1<br>not at all", "5<br>very much"),
+                       affDepr = c("1<br>not at all", "5<br>very much"),
+                       affEnerg = c("1<br>not at all", "5<br>very much"),
+                       affExc = c("1<br>not at all", "5<br>very much"),
+                       affNerv = c("1<br>not at all", "5<br>very much"),
+                       affExh = c("1<br>not at all", "5<br>very much"),
+                       affInsp = c("1<br>not at all", "5<br>very much"),
+                       affRel = c("1<br>not at all", "5<br>very much"),
+                       affHighPos = c("1<br>not at all", "5<br>very much"),
+                       affHighNeg = c("1<br>not at all", "5<br>very much"),
+                       affLowPos = c("1<br>not at all", "5<br>very much"),
+                       affLowNeg = c("1<br>not at all", "5<br>very much"))
+      lab.y.ends <- list(gov = c("unclear 1", "clear 6"), 
+                         comRule = c("not at all 1", "very much 6"),
+                         comPunish = c("not at all 1", "very much 6"),
+                         comOrg = c("not at all 1", "very much 6"),
+                         covidHope = c("disagree -3", "agree 3"), 
+                         covidEff = c("disagree -3", "agree 3"), 
+                         lone = c("Never 1", "All the time 5"),
+                         para = c("Not at all 0", "Very much 10"),
+                         consp = c("0%", "100%"),
+                         behWash = c("disagree -3", "agree 3"), 
+                         behAvoid = c("disagree -3", "agree 3"), 
+                         isoPers = c(1,7),
+                         isoOnl = c(1,7),
+                         affAnx = c("not at all 1", "very much 5"),
+                         affBor = c("not at all 1", "very much 5"),
+                         affCalm = c("not at all 1", "very much 5"),
+                         affContent = c("not at all 1", "very much 5"),
+                         affDepr = c("not at all 1", "very much 5"),
+                         affEnerg = c("not at all 1", "very much 5"),
+                         affExc = c("not at all 1", "very much 5"),
+                         affNerv = c("not at all 1", "very much 5"),
+                         affExh = c("not at all 1", "very much 5"),
+                         affInsp = c("not at all 1", "very much 5"),
+                         affRel = c("not at all 1", "very much 5"),
+                         affHighPos = c("not at all 1", "very much 5"),
+                         affHighNeg = c("not at all 1", "very much 5"),
+                         affLowPos = c("not at all 1", "very much 5"),
+                         affLowNeg = c("not at all 1", "very much 5"))
+      
+      # lab.ticks <- list(covidHope = c("0"), 
+      #                   covidEff = c("0"), 
+      #                   lone = c("0"),
+      #                   para = c("0"),
+      #                   consp = c("0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"))
+      # lab.breaks <- list(covidHope = seq(0,7,1), 
+      #                    covidEff = seq(0,7,1), 
+      #                    lone = seq(1,5,1),
+      #                    para = seq(0,10,1),
+      #                    consp = seq(0,10,1))
+      
+      lab.ends.x.js <- paste0("function(){console.log(this);
+                                        if(this.isFirst){
+                                        return '",
+                            lab.x.ends[input$CorX][[1]][1],
+                            "'} else if(this.isLast) {return '",
+                            lab.x.ends[input$CorX][[1]][2],
+                            "'} else {
+                                        return this.value
+                                        }
+                                        }")
+      
+      lab.ends.y.js <- paste0("function(){console.log(this);
+                                        if(this.isFirst){
+                                        return '",
+                              lab.y.ends[input$CorY][[1]][1],
+                              "'} else if(this.isLast) {return '",
+                              lab.y.ends[input$CorY][[1]][2],
+                              "'} else {
+                                        return this.value
+                                        }
+                                        }")
+      
       tooltipJS <- paste0("function(){
                       return ('Country: ' + this.point.coded_country + 
                       ' <br> ",varLab[input$CorX],": ' + Math.round((this.x+ Number.EPSILON) * 100) / 100 + 
@@ -1096,8 +1315,16 @@ server <- function(input, output, session) {
                       minSize = 8, maxSize = "30%", showInLegend = F
         ) %>%
         hc_title(text = "PsyCorona Bubble Chart") %>%
-        hc_xAxis(title = list(text = as.character(varLab[input$CorX]))) %>%
-        hc_yAxis(title = list(text = as.character(varLab[input$CorY]))) %>%
+        hc_xAxis(title = list(text = as.character(varLab[input$CorX])),
+                 min = min[[input$CorX]],
+                 max = max[[input$CorX]],
+                 tickInterval = 1,
+                 labels = list(formatter = JS(lab.ends.x.js))) %>%
+        hc_yAxis(title = list(text = as.character(varLab[input$CorY])),
+                 min = min[[input$CorY]],
+                 max = max[[input$CorY]],
+                 tickInterval = 1,
+                 labels = list(formatter = JS(lab.ends.y.js))) %>%
         hc_tooltip(formatter = JS(tooltipJS))
     }
   })
