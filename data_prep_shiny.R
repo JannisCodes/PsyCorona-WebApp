@@ -16,6 +16,7 @@ rm(lib)
 
 filter_cntry <- function(filter_vector,...) {
   data <- filter_vector %>%
+    mutate_if(is.factor, as.numeric) %>%
     dplyr::summarize(
       ...,
       n = n(),
@@ -114,26 +115,28 @@ data_prep <- function(){
   
   world.data <- ne_countries(scale = "medium", returnclass = "sf")
   world.data$iso_a2[world.data$admin=="Kosovo"] <- "XK"
-  dt5newVars <- read.csv("data/rawdata.csv") # raw data provided
-  
-  dt5newVars$coded_country[dt5newVars$coded_country == ""] <- NA # set empty cells in coded_country column to NA
-  unique(dt5newVars$coded_country)[!unique(dt5newVars$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
+  raw.data <- read.csv("data/rawdatalabels.csv", na.strings = " ") # raw data provided
+  #raw.data$coded_country[raw.data$coded_country == " "] <- NA # set empty cells in coded_country column to NA
+  raw.data <- raw.data %>% drop_na(coded_country) # drop participants with missing counties
+  unique(raw.data$coded_country)[!unique(raw.data$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
   
   
   ### Calculate compound scores ###
+  raw.data$affHighPos.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
+  raw.data$affHighNeg.m <- scoreItems(keys=c(1,1), items = raw.data %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
+  raw.data$affLowPos.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
+  raw.data$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
+  raw.data$lone.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^lone[0][[:digit:]]$")), min = 1, max = 5)$scores # changed selection to use RE
+  raw.data$isoPers.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores
+  raw.data$isoOnl.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores
+  raw.data$para.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^para[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
+  raw.data$consp.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
   
-  dt5newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
-  dt5newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt5newVars %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
-  dt5newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
-  dt5newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
-  dt5newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(matches("^lone[0][[:digit:]]$")), min = 1, max = 5)$scores # changed selection to use RE
-  dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores
-  dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores
-  dt5newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(matches("^para[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
-  dt5newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(matches("^consp[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
+  ### re-code EDU levels ###
+  levels(raw.data$edu) <- gsub("General s", "S", levels(raw.data$edu))
   
   # all ISO-2 country code to dataframe and flags
-  shiny_prep <- merge(x = dt5newVars, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
+  shiny_prep <- merge(x = raw.data, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
   shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
   
   ### Creating scales for entire Sample ###
@@ -143,7 +146,7 @@ data_prep <- function(){
   
   ### Creating scales for representative Sample ###
   ctry.scales.representative <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes") %>% dplyr::group_by(coded_country))
-  representative_global.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes"),coded_country = "global",iso_a2 = NA,
+  global.scales.representative <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes"),coded_country = "global",iso_a2 = NA,
                                                flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
   
   
@@ -154,7 +157,7 @@ data_prep <- function(){
   ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
   
   ### Merger for representative sample with global (representative) variable ###
-  ctry.scales.representative <- rbind(representative_global.scales, ctry.scales.representative); rm(representative_global.scales)
+  ctry.scales.representative <- rbind(global.scales.representative, ctry.scales.representative); rm(global.scales.representative)
   
   
   scramble20 <- function(x) {ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x)}
@@ -163,6 +166,9 @@ data_prep <- function(){
   ### Categorical filters for entire sample and representative sample ###
   
   ## Languages ##
+  
+  ### fill empty Dutch Language (potentially from )
+  shiny_prep$language[shiny_prep$coded_country=="Netherlands" & shiny_prep$language==""] <- "Dutch"
   
   languages <- categorical_filter(shiny_prep %>% dplyr::select(coded_country, language) %>%
                                   group_by(language, coded_country),
