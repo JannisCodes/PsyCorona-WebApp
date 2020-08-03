@@ -17,6 +17,10 @@ library(scales)
 library(grDevices)
 library(shinyalert)
 library(shinyBS)
+library(htmltools)
+source("R/dependencies.R")
+source("R/input-multi.R")
+source("R/utils.R")
 source("data_prep_shiny.R")
 
 # R Studio Clean-Up:
@@ -32,6 +36,37 @@ if (!file.exists("data/shinyDataAggregated.RData")) {
 load("data/shinyDataAggregated.RData")
 
 
+updateMultiInput_2 <- function (session, inputId, label = NULL, selected = NULL, choices = NULL, choiceValues = NULL, choiceNames = NULL) {
+  if (is.null(choices)) {
+    if (is.null(choiceValues))
+      stop("If choices = NULL, choiceValues must be not NULL")
+    if (length(choiceNames) != length(choiceValues)) {
+      stop("`choiceNames` and `choiceValues` must have the same length.")
+    }
+    choiceValues <- as.list(choiceValues)
+    choiceNames <- as.list(choiceNames)
+    choices_2 <- tagList(
+      lapply(
+        X = seq_along(choiceNames),
+        FUN = function(i) {
+          htmltools::tags$option(value = choiceValues[[i]], as.character(choiceNames[[i]]),
+                                 selected = if(choiceValues[[i]] %in% selected) "selected")
+        }
+      )
+    )
+  }
+  else {
+    choices_2 <- if (!is.null(choices))
+      choicesWithNames(choices_2)
+  }
+  if (!is.null(selected))
+    selected <- validateSelected(selected, choices_2, inputId)
+  options <- as.character(makeChoices(choices = choices, choiceValues = choiceValues, choiceNames = choiceNames, selected = selected))
+  message <- dropNulls(list(label = label, options = options, value = selected))
+  session$sendInputMessage(inputId, message)
+}
+
+
 r2d3_script <- "
 // !preview r2d3 data= data.frame(y = 0.1, ylabel = '1%', fill = '#E69F00', mouseover = 'green', label = 'one', id = 1)
 function svg_height() {return parseInt(svg.style('height'))}
@@ -41,6 +76,7 @@ function col_left() {return svg_width()  * 0.25;}
 function actual_max() {return d3.max(data, function (d) {return d.y; }); }
 function col_width()  {return (svg_width() / actual_max()) * 0.60; }
 function col_heigth() {return svg_height() / data.length * 0.95; }
+
   var bars = svg.selectAll('rect').data(data);
   bars.enter().append('rect')
       .attr('x',      170)
@@ -100,6 +136,24 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
 r2d3_file <- tempfile()
 writeLines(r2d3_script, r2d3_file)
 
+all_valid_ctry <- ctry.scales$coded_country[! ctry.scales$coded_country %in% c("representative")]
+all_valid_ctry.only.red <- all_valid_ctry[! all_valid_ctry %in% c("global")]
+repr_valid_ctry.only.red <- ctry.scales.representative$coded_country
+repr_valid_ctry <- append(c("representative"), repr_valid_ctry.only.red)
+
+# TODO: TEMPORARY
+ctry.only.red <- ctry.only.red[! ctry.only.red$coded_country %in% c("representative"), ]
+ctry.only.red.repr <- ctry.scales.representative %>% dplyr::select(coded_country, iso_a2, flag, n) %>% filter(coded_country != "global")
+ctry.red.repr <- ctry.scales.representative %>% dplyr::select(coded_country, iso_a2, flag, n)
+ctry.red <- ctry.red[ctry.red$coded_country %in% all_valid_ctry, ]
+
+
+# Default
+select_ctry_sample <- all_valid_ctry
+select_ctry_psych <- "global"
+select_sample <- "full"
+select_transformation <- "raw"
+
 
 ui <- dashboardPage(
   title = "PsyCorona: Data Visualization",
@@ -109,32 +163,33 @@ ui <- dashboardPage(
                   #                               icon = icon("warning"),
                   #                               status = "warning")
                   #              )
-  ),
+                  ),
   dashboardSidebar(
-    sidebarMenu(
+    sidebarMenu(id = "sidebarMenu",
       menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
       menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
       menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
       menuItem("Data", tabName = "data", icon = icon("fas fa-share-square")),
       menuItem("About", tabName = "about", icon = icon("info")),
-      menuItem(HTML(paste0("Take the Suvey Now ", icon("external-link"))), icon=icon("fas fa-file-signature"), href = "https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", newtab = T)),
+      menuItem(HTML(paste0("Take the survey now ", icon("external-link"))), icon=icon("fas fa-file-signature"), href = "https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", newtab = T),
+      uiOutput("dynamic_content")),
     shinyjs::useShinyjs(),
     tags$footer(HTML("<strong>Copyright &copy; 2020 <a href=\"https://psycorona.org/about/\" target=\"_blank\">PsyCorona</a>.</strong> 
                    <br>This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.
                    <br><a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a>
                    <br>Last updated:<br>"), 
-                latest.DateTime,
+                  latest.DateTime,
                 id = "sideFooter",
-                align = "left",
-                style = "
+                  align = "left",
+                  style = "
                   position:absolute;
                   bottom:0;
                   width:100%;
                   padding: 10px;
                   "
-    )
-    #HTML("<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a><br />This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.")
-    #)
+                  )
+      #HTML("<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a><br />This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.")
+      #)
   ),
   dashboardBody(
     tags$script(HTML("$('body').addClass('sidebar-mini');")),
@@ -185,7 +240,7 @@ ui <- dashboardPage(
         twitter_creator = "@JannisWrites",
         twitter_card_type = "summary",
         twitter_site = "@JannisWrites"
-      ),
+        ),
     
     shinyjs::useShinyjs(),
     tabItems(
@@ -243,7 +298,7 @@ ui <- dashboardPage(
                                                              ctry.only.red$coded_country[i],
                                                              paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
                     choiceValues = ctry.only.red$coded_country,
-                    selected = ctry.only.red$coded_country
+                    selected = all_valid_ctry
                   ),
                   
                   hr(),
@@ -348,15 +403,15 @@ ui <- dashboardPage(
                                       value = 5,
                                       column(12, align="center",
                                              tags$b("Individual Emotions "),
-                                             prettySwitch(
-                                               inputId = "categorySwitch",
-                                               label = tags$b("Emotional Categories"), 
-                                               status = "success",
-                                               fill = TRUE,
-                                               inline = TRUE,
-                                               value = FALSE
-                                             )
-                                      ),
+                                            prettySwitch(
+                                                inputId = "categorySwitch",
+                                                label = tags$b("Emotional Categories"), 
+                                                status = "success",
+                                                fill = TRUE,
+                                                inline = TRUE,
+                                                value = FALSE
+                                              )
+                                            ),
                                       chartJSRadarOutput('affect', height = "125", width = "400"),
                                       tags$br(),
                                       "Note: Here you can see the emotional reactions of people. There are two ways to look at them: Emotional Categories and Individual Emotions. 
@@ -393,80 +448,80 @@ ui <- dashboardPage(
                       selected = "global"
                     )
                 )
-              ),
-              conditionalPanel(
-                condition = "input.dataTabs == 6",
-                box(width = 12,
-                    solidHeader = T,
-                    status = "primary",
-                    h4("Select Variables:"),
-                    column(width = 6,
-                           pickerInput(
-                             inputId = "CorX",
-                             label = "X Axis:",
-                             #width = "80%",
-                             choices = list(
-                               Government = c("Clear Government Information" = "gov"),
-                               Community = c("Rules"="comRule", "Punishment"="comPunish", "Organization"="comOrg"),
-                               Cognitive = c("Hope"="covidHope", "Efficacy"="covidEff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
-                               Behavior = c("Washing"="behWash", "Avoiding"="behAvoid", "Isolation Offline"="isoPers", "Isolation Online"="isoOnl"),
-                               Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Content"="affContent", "Depressed"="affDepr", "Energetic"="affEnerg", 
-                                           "Excited"="affExc", "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel"),
-                               EmtionCat = c("High Arousal Positive"="affHighPos", "High Arousal Negative"="affHighNeg", 
-                                             "Low Arousal Positive"="affLowPos", "Low Arousal Negative"="affLowNeg")
-                             )
-                           )
+             ),
+             conditionalPanel(
+               condition = "input.dataTabs == 6",
+               box(width = 12,
+                   solidHeader = T,
+                   status = "primary",
+                   h4("Select Variables:"),
+                   column(width = 6,
+                     pickerInput(
+                       inputId = "CorX",
+                       label = "X Axis:",
+                       #width = "80%",
+                       choices = list(
+                         Government = c("Clear Government Information" = "gov"),
+                         Community = c("Rules"="comRule", "Punishment"="comPunish", "Organization"="comOrg"),
+                         Cognitive = c("Hope"="covidHope", "Efficacy"="covidEff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
+                         Behavior = c("Washing"="behWash", "Avoiding"="behAvoid", "Isolation Offline"="isoPers", "Isolation Online"="isoOnl"),
+                         Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Content"="affContent", "Depressed"="affDepr", "Energetic"="affEnerg", 
+                                     "Excited"="affExc", "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel"),
+                         EmtionCat = c("High Arousal Positive"="affHighPos", "High Arousal Negative"="affHighNeg", 
+                                       "Low Arousal Positive"="affLowPos", "Low Arousal Negative"="affLowNeg")
+                       )
+                     )
                     ),
-                    column(width = 6,
-                           pickerInput(
-                             inputId = "CorY",
-                             label = "Y Axis:",
-                             #width = "80%",
-                             choices = list(
-                               Government = c("Clear Government Information" = "gov"),
-                               Community = c("Rules"="comRule", "Punishment"="comPunish", "Organization"="comOrg"),
-                               Cognitive = c("Hope"="covidHope", "Efficacy"="covidEff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
-                               Behavior = c("Washing"="behWash", "Avoiding"="behAvoid", "Isolation Offline"="isoPers", "Isolation Online"="isoOnl"),
-                               Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Content"="affContent", "Depressed"="affDepr", "Energetic"="affEnerg", 
-                                           "Excited"="affExc", "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel"),
-                               EmtionCat = c("High Arousal Positive"="affHighPos", "High Arousal Negative"="affHighNeg", 
-                                             "Low Arousal Positive"="affLowPos", "Low Arousal Negative"="affLowNeg")),
-                             selected = "comPunish"
-                           )
-                    ),
-                    hr(),
-                    h4("Select Region:"),
-                    multiInput(
-                      inputId = "cor_country_selection",
-                      label = "Please select the countries you are interested in (all countries n > 20):", 
-                      choices = NULL,
-                      choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
-                                           function(i) tagList(tags$img(src = ctry.only.red$flag[i],
-                                                                        width = 20, 
-                                                                        height = 15), 
-                                                               ctry.only.red$coded_country[i],
-                                                               paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
-                      choiceValues = ctry.only.red$coded_country,
-                      selected = ctry.only.red$coded_country
-                    ),
-                    div(style="display:inline-block;width:100%;text-align: center;",
-                        actionBttn(
-                          inputId = "cor_country_none", 
-                          label = "None",
-                          style = "simple", 
-                          color = "primary",
-                          size = "sm"),
-                        HTML("&nbsp;&nbsp;"),
-                        actionBttn(
-                          inputId = "cor_country_all", 
-                          label = "All",
-                          style = "simple", 
-                          color = "primary",
-                          size = "sm")
-                    )
-                    
-                )
-              )
+                   column(width = 6,
+                     pickerInput(
+                       inputId = "CorY",
+                       label = "Y Axis:",
+                       #width = "80%",
+                       choices = list(
+                         Government = c("Clear Government Information" = "gov"),
+                         Community = c("Rules"="comRule", "Punishment"="comPunish", "Organization"="comOrg"),
+                         Cognitive = c("Hope"="covidHope", "Efficacy"="covidEff", "Loneliness"="lone", "Paranoia"="para", "Conspiracy"="consp"),
+                         Behavior = c("Washing"="behWash", "Avoiding"="behAvoid", "Isolation Offline"="isoPers", "Isolation Online"="isoOnl"),
+                         Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Content"="affContent", "Depressed"="affDepr", "Energetic"="affEnerg", 
+                                     "Excited"="affExc", "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel"),
+                         EmtionCat = c("High Arousal Positive"="affHighPos", "High Arousal Negative"="affHighNeg", 
+                                       "Low Arousal Positive"="affLowPos", "Low Arousal Negative"="affLowNeg")),
+                       selected = "comPunish"
+                     )
+                   ),
+                   hr(),
+                   h4("Select Region:"),
+                   multiInput(
+                     inputId = "cor_country_selection",
+                     label = "Please select the countries you are interested in (all countries n > 20):", 
+                     choices = NULL,
+                     choiceNames = lapply(seq_along(ctry.only.red$coded_country), 
+                                          function(i) tagList(tags$img(src = ctry.only.red$flag[i],
+                                                                       width = 20, 
+                                                                       height = 15), 
+                                                              ctry.only.red$coded_country[i],
+                                                              paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
+                     choiceValues = ctry.only.red$coded_country,
+                     selected = all_valid_ctry
+                   ),
+                   div(style="display:inline-block;width:100%;text-align: center;",
+                       actionBttn(
+                         inputId = "cor_country_none", 
+                         label = "None",
+                         style = "simple", 
+                         color = "primary",
+                         size = "sm"),
+                       HTML("&nbsp;&nbsp;"),
+                       actionBttn(
+                         inputId = "cor_country_all", 
+                         label = "All",
+                         style = "simple", 
+                         color = "primary",
+                         size = "sm")
+                   )
+                 
+               )
+             )
       ),
       tabItem(tabName = "development",
               h2("Development over Time"),
@@ -631,8 +686,8 @@ ui <- dashboardPage(
               )
       )
     )
+    )
   )
-)
 
 
 server <- function(input, output, session) {
@@ -650,7 +705,7 @@ server <- function(input, output, session) {
   #   } else {
   #   }
   # })
-  
+
   
   # shinyalert(title = "Preview Version",
   #            text = "This application is currently in development.
@@ -669,15 +724,47 @@ server <- function(input, output, session) {
               This means the data might not be representative of how countries are doing right now. Both <b> nationally representative and developmental displays of the data will be available soon</b>.",
               style = "warning")
   
+  output$dynamic_content <- renderUI({
+    
+    if (input$sidebarMenu == "sample") {
+      
+      dyn_ui <- awesomeRadio(inputId = "switch_sample", 
+                             label = "Sample:",
+                             choices = c("Full sample" = "full",
+                                         "Representative sample" = "representative"),
+                             selected = select_sample)
+      
+    } 
+    else if (input$sidebarMenu == "Variables") {
+      
+      dyn_ui <- list(awesomeRadio(inputId = "switch_sample", 
+                                  label = "Sample:",
+                                  choices = c("Full sample" = "full", 
+                                              "Representative sample" = "representative"),
+                                  selected = select_sample),
+                     awesomeRadio(inputId = "switch_transformation", 
+                                  label = "Transformation:",
+                                  choices = c("Raw data" = "raw", 
+                                              "Standardized" = "standardized"),
+                                  selected = select_transformation)
+      )
+    }
+    else {dyn_ui <- NULL}
+    
+    return(dyn_ui)
+  })
+
+
+  
   output$sample.bar.NA <- renderText({
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     
-    test <- ctry.scales %>%
+    test <- reactive_ctry.scales() %>%
       filter(coded_country %in% input$sample_country_selection) %>%
       select(starts_with(input$var)) %>%
       t() %>%
       as.data.frame()
-    colnames(test) <- input$sample_country_selection
+    # colnames(test) <- input$sample_country_selection
     test <- test %>%
       mutate(n = rowSums(., na.rm=TRUE),
              label = str_replace(rownames(.), ".*_", "")) %>%
@@ -685,6 +772,7 @@ server <- function(input, output, session) {
              label != "<NA>")
     
     ifelse(sum(test$n)<20, "Not enough data to display summary","")
+    # ifelse(sum(test$n)<20, "","")
   })
   
   output$SampleTxt <- renderText({
@@ -702,12 +790,12 @@ server <- function(input, output, session) {
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     #input <- list(var = "gender", sample_country_selection = c("Poland", "Romania", "Albania"))
     
-    dem <- ctry.scales %>%
+    dem <- reactive_ctry.scales() %>%
       filter(coded_country %in% input$sample_country_selection) %>%
       select(starts_with(input$var)) %>%
       t() %>%
       as.data.frame()
-    colnames(dem) <- input$sample_country_selection
+    # colnames(dem) <- input$sample_country_selection
     dem %>%
       mutate(n = rowSums(., na.rm=TRUE),
              label = str_replace(rownames(.), ".*_", "")) %>%
@@ -723,7 +811,7 @@ server <- function(input, output, session) {
   
   output$freqPlot <- renderHighchart({
     hcmap(download_map_data = FALSE,
-          data = world.n %>% filter(coded_country %in% input$sample_country_selection), 
+          data = reactive_ctry.scales() %>% filter(coded_country %in% input$sample_country_selection),
           value = "n",
           joinBy = c("iso-a2", "iso_a2"), name = "sample size",
           #dataLabels = list(enabled = TRUE, format = '{point.name}'),
@@ -738,7 +826,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(psych_country_selection = c("global"))
     
-    governmentRed <- ctry.scales %>%
+    governmentRed <- reactive_ctry.scales() %>%
       select(coded_country, starts_with("gov")) %>%
       filter(coded_country %in% input$psych_country_selection) %>%
       mutate(mean = gov,
@@ -759,30 +847,30 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
-      highchart() %>% 
-        hc_chart(type = "bar") %>% 
-        hc_add_series(governmentRed, "errorbar", 
-                      hcaes(x = coded_country, low = low, high = high),
-                      color = "#3b738f") %>% 
-        hc_add_series(governmentRed, "scatter",
-                      hcaes(x = coded_country, y = mean),
-                      color = "#3b738f",
-                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                      animation = list(duration = 1900),
-                      showInLegend = FALSE) %>%
-        hc_title(text = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus? [Mean and 95%CI]") %>%
-        hc_xAxis(categories = as.list(governmentRed$coded_country)) %>%
-        hc_yAxis(showFirstLabel = T,
-                 showLastLabel = T,
-                 min = 1,
-                 max = 6,
-                 #step = 1,
-                 #list(formatter = JS(gov.labs)), 
-                 #rotation = 0,
-                 categories = categories,
-                 #align = "center",
-                 tickmarkPlacement = seq(1,6,1)) %>%
-        hc_tooltip(formatter = JS(tooltipJS))
+    highchart() %>% 
+      hc_chart(type = "bar") %>% 
+      hc_add_series(governmentRed, "errorbar", 
+                    hcaes(x = coded_country, low = low, high = high),
+                    color = "#3b738f") %>% 
+      hc_add_series(governmentRed, "scatter",
+                    hcaes(x = coded_country, y = mean),
+                    color = "#3b738f",
+                    marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
+                    animation = list(duration = 1900),
+                    showInLegend = FALSE) %>%
+      hc_title(text = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus? [Mean and 95%CI]") %>%
+      hc_xAxis(categories = as.list(governmentRed$coded_country)) %>%
+      hc_yAxis(showFirstLabel = T,
+               showLastLabel = T,
+               min = 1,
+               max = 6,
+               #step = 1,
+               #list(formatter = JS(gov.labs)), 
+               #rotation = 0,
+               categories = categories,
+               #align = "center",
+               tickmarkPlacement = seq(1,6,1)) %>%
+      hc_tooltip(formatter = JS(tooltipJS))
     }
   })
   
@@ -790,7 +878,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(ComVars = "comRule", psych_country_selection = c("Germany", "France"))
     
-    communityRed <- ctry.scales %>%
+    communityRed <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, 
                     n,
                     mean = one_of(input$ComVars),
@@ -818,30 +906,30 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
-      highchart() %>% 
-        hc_chart(type = "bar") %>% 
-        hc_add_series(communityRed, "errorbar", 
-                      hcaes(x = coded_country, low = low, high = high),
-                      color = "#3b738f") %>% 
-        hc_add_series(communityRed, "scatter",
-                      hcaes(x = coded_country, y = mean),
-                      color = "#3b738f",
-                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                      animation = list(duration = 1900),
-                      showInLegend = FALSE) %>%
-        hc_title(text = title.txt[[input$ComVars]]) %>% 
-        hc_xAxis(categories = as.list(communityRed$coded_country)) %>%
-        hc_yAxis(showFirstLabel = T,
-                 showLastLabel = T,
-                 min = 1,
-                 max = 6,
-                 #step = 1,
-                 #list(formatter = JS(gov.labs)), 
-                 #rotation = 0,
-                 categories = categories,
-                 #align = "center",
-                 tickmarkPlacement = seq(1,6,1)) %>%
-        hc_tooltip(formatter = JS(tooltipJS))
+    highchart() %>% 
+      hc_chart(type = "bar") %>% 
+      hc_add_series(communityRed, "errorbar", 
+                    hcaes(x = coded_country, low = low, high = high),
+                    color = "#3b738f") %>% 
+      hc_add_series(communityRed, "scatter",
+                    hcaes(x = coded_country, y = mean),
+                    color = "#3b738f",
+                    marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
+                    animation = list(duration = 1900),
+                    showInLegend = FALSE) %>%
+      hc_title(text = title.txt[[input$ComVars]]) %>% 
+      hc_xAxis(categories = as.list(communityRed$coded_country)) %>%
+      hc_yAxis(showFirstLabel = T,
+               showLastLabel = T,
+               min = 1,
+               max = 6,
+               #step = 1,
+               #list(formatter = JS(gov.labs)), 
+               #rotation = 0,
+               categories = categories,
+               #align = "center",
+               tickmarkPlacement = seq(1,6,1)) %>%
+      hc_tooltip(formatter = JS(tooltipJS))
     }
   })
   
@@ -849,7 +937,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(CogVars = "covidHope", cog_country_selection = c("Germany", "France"))
     
-    cognitiveRed <- ctry.scales %>%
+    cognitiveRed <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, 
                     n,
                     mean = one_of(input$CogVars),
@@ -912,31 +1000,31 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
-      highchart() %>% 
-        hc_chart(type = "bar") %>% 
-        hc_add_series(cognitiveRed, "errorbar", 
-                      hcaes(x = coded_country, low = low, high = high),
-                      color = "#3b738f") %>% 
-        hc_add_series(cognitiveRed, "scatter",
-                      hcaes(x = coded_country, y = mean),
-                      color = "#3b738f",
-                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                      animation = list(duration = 1900),
-                      showInLegend = FALSE) %>%
-        hc_title(text = title.txt[[input$CogVars]]) %>% 
-        hc_xAxis(categories = as.list(cognitiveRed$coded_country)) %>%
-        hc_yAxis(showFirstLabel = T,
-                 showLastLabel = T,
-                 min = y.min[[input$CogVars]],
-                 max = y.max[[input$CogVars]],
-                 tickInterval = 1,
-                 #step = 1,
-                 labels = list(formatter = JS(lab.ends.js)), 
-                 #rotation = 0,
-                 categories = lab.ticks[[input$CogVars]],
-                 #align = "center",
-                 tickmarkPlacement = lab.breaks[[input$CogVars]]) %>%
-        hc_tooltip(formatter = JS(tooltipJS))
+    highchart() %>% 
+      hc_chart(type = "bar") %>% 
+      hc_add_series(cognitiveRed, "errorbar", 
+                    hcaes(x = coded_country, low = low, high = high),
+                    color = "#3b738f") %>% 
+      hc_add_series(cognitiveRed, "scatter",
+                    hcaes(x = coded_country, y = mean),
+                    color = "#3b738f",
+                    marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
+                    animation = list(duration = 1900),
+                    showInLegend = FALSE) %>%
+      hc_title(text = title.txt[[input$CogVars]]) %>% 
+      hc_xAxis(categories = as.list(cognitiveRed$coded_country)) %>%
+      hc_yAxis(showFirstLabel = T,
+               showLastLabel = T,
+               min = y.min[[input$CogVars]],
+               max = y.max[[input$CogVars]],
+               tickInterval = 1,
+               #step = 1,
+               labels = list(formatter = JS(lab.ends.js)), 
+               #rotation = 0,
+               categories = lab.ticks[[input$CogVars]],
+               #align = "center",
+               tickmarkPlacement = lab.breaks[[input$CogVars]]) %>%
+      hc_tooltip(formatter = JS(tooltipJS))
     }
   })
   
@@ -946,7 +1034,7 @@ server <- function(input, output, session) {
     
     if (input$BehVars == "iso") {
       
-      behaviorRedIso <- ctry.scales %>%
+      behaviorRedIso <- reactive_ctry.scales() %>%
         dplyr::select(coded_country, 
                       n,
                       isoPers,
@@ -976,53 +1064,53 @@ server <- function(input, output, session) {
       if (nrow(behaviorRedIso) == 0) {
         highchart() %>%
           hc_title(text = "Select Countries to Display") %>%
-          hw_grid(ncol = 1, rowheight = "400")
+        hw_grid(ncol = 1, rowheight = "400")
       } else {
-        hcPers <- highchart() %>% 
-          hc_chart(type = "bar") %>% 
-          hc_add_series(behaviorRedIso, "errorbar", 
-                        hcaes(x = coded_country, low = lowPers, high = highPers),
-                        color = "#3b738f") %>% 
-          hc_add_series(behaviorRedIso, "scatter",
-                        hcaes(x = coded_country, y = isoPers),
-                        color = "#3b738f",
-                        marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                        animation = list(duration = 1900),
-                        showInLegend = FALSE) %>%
-          hc_title(text = "Number of days per week with <b>in-person</b> contacts") %>%
-          hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
-          hc_yAxis(min = 0,
-                   max = 7,
-                   categories = seq(0,7,1),
-                   tickmarkPlacement = seq(0,7,1)) %>%
-          hc_tooltip(formatter = JS(tooltipJSPers))
-        
-        hcOnli <- highchart() %>% 
-          hc_chart(type = "bar") %>% 
-          hc_add_series(behaviorRedIso, "errorbar", 
-                        hcaes(x = coded_country, low = lowOnl, high = highOnl),
-                        color = "#3b738f") %>% 
-          hc_add_series(behaviorRedIso, "scatter",
-                        hcaes(x = coded_country, y = isoOnl),
-                        color = "#3b738f",
-                        marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                        animation = list(duration = 1900),
-                        showInLegend = FALSE) %>%
-          hc_title(text = "Number of days per week with <b>online</b> contacts") %>%
-          hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
-          hc_yAxis(min = 0,
-                   max = 7,
-                   categories = seq(0,7,1),
-                   tickmarkPlacement = seq(0,7,1)) %>%
-          hc_tooltip(formatter = JS(tooltipJSOnl))
-        lst <- list(hcPers, hcOnli)  
-        
-        hw_grid(lst, ncol = 2, rowheight = "400")
+      hcPers <- highchart() %>% 
+        hc_chart(type = "bar") %>% 
+        hc_add_series(behaviorRedIso, "errorbar", 
+                      hcaes(x = coded_country, low = lowPers, high = highPers),
+                      color = "#3b738f") %>% 
+        hc_add_series(behaviorRedIso, "scatter",
+                      hcaes(x = coded_country, y = isoPers),
+                      color = "#3b738f",
+                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
+                      animation = list(duration = 1900),
+                      showInLegend = FALSE) %>%
+        hc_title(text = "Number of days per week with <b>in-person</b> contacts") %>%
+        hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
+        hc_yAxis(min = 0,
+                 max = 7,
+                 categories = seq(0,7,1),
+                 tickmarkPlacement = seq(0,7,1)) %>%
+        hc_tooltip(formatter = JS(tooltipJSPers))
+      
+      hcOnli <- highchart() %>% 
+        hc_chart(type = "bar") %>% 
+        hc_add_series(behaviorRedIso, "errorbar", 
+                      hcaes(x = coded_country, low = lowOnl, high = highOnl),
+                      color = "#3b738f") %>% 
+        hc_add_series(behaviorRedIso, "scatter",
+                      hcaes(x = coded_country, y = isoOnl),
+                      color = "#3b738f",
+                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
+                      animation = list(duration = 1900),
+                      showInLegend = FALSE) %>%
+        hc_title(text = "Number of days per week with <b>online</b> contacts") %>%
+        hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
+        hc_yAxis(min = 0,
+                 max = 7,
+                 categories = seq(0,7,1),
+                 tickmarkPlacement = seq(0,7,1)) %>%
+        hc_tooltip(formatter = JS(tooltipJSOnl))
+      lst <- list(hcPers, hcOnli)  
+      
+      hw_grid(lst, ncol = 2, rowheight = "400")
       }
       
     } else {
       
-      behaviorRed <- ctry.scales %>%
+      behaviorRed <- reactive_ctry.scales() %>%
         dplyr::select(coded_country, 
                       n,
                       mean = one_of(input$BehVars),
@@ -1065,31 +1153,31 @@ server <- function(input, output, session) {
       if (nrow(behaviorRed) == 0) {
         highchart() %>%
           hc_title(text = "Select Countries to Display") %>%
-          hw_grid(ncol = 1, rowheight = "400")
+        hw_grid(ncol = 1, rowheight = "400")
       } else {
-        highchart() %>% 
-          hc_chart(type = "bar") %>% 
-          hc_add_series(behaviorRed, "errorbar", 
-                        hcaes(x = coded_country, low = low, high = high),
-                        color = "#3b738f") %>% 
-          hc_add_series(behaviorRed, "scatter",
-                        hcaes(x = coded_country, y = mean),
-                        color = "#3b738f",
-                        marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
-                        animation = list(duration = 1900),
-                        showInLegend = FALSE) %>%
-          hc_title(text = title.txt[[input$BehVars]]) %>% 
-          hc_xAxis(categories = as.list(behaviorRed$coded_country)) %>%
-          hc_yAxis(showFirstLabel = T,
-                   showLastLabel = T,
-                   min = y.min[[input$BehVars]],
-                   max = y.max[[input$BehVars]],
-                   tickInterval = 1,
-                   labels = list(formatter = JS(lab.ends.js)), 
-                   categories = c("0"),
-                   tickmarkPlacement = seq(0,7,1)) %>%
-          hc_tooltip(formatter = JS(tooltipJS)) %>%
-          hw_grid(ncol = 1, rowheight = "400")
+      highchart() %>% 
+        hc_chart(type = "bar") %>% 
+        hc_add_series(behaviorRed, "errorbar", 
+                      hcaes(x = coded_country, low = low, high = high),
+                      color = "#3b738f") %>% 
+        hc_add_series(behaviorRed, "scatter",
+                      hcaes(x = coded_country, y = mean),
+                      color = "#3b738f",
+                      marker = list(symbol = "diamond", radius = 5, enabled = TRUE),
+                      animation = list(duration = 1900),
+                      showInLegend = FALSE) %>%
+        hc_title(text = title.txt[[input$BehVars]]) %>% 
+        hc_xAxis(categories = as.list(behaviorRed$coded_country)) %>%
+        hc_yAxis(showFirstLabel = T,
+                 showLastLabel = T,
+                 min = y.min[[input$BehVars]],
+                 max = y.max[[input$BehVars]],
+                 tickInterval = 1,
+                 labels = list(formatter = JS(lab.ends.js)), 
+                 categories = c("0"),
+                 tickmarkPlacement = seq(0,7,1)) %>%
+        hc_tooltip(formatter = JS(tooltipJS)) %>%
+        hw_grid(ncol = 1, rowheight = "400")
       }
     }
   })
@@ -1131,7 +1219,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(CorX = "covidHope", CorY = "covidEff")
     
-    cor.dat <- ctry.scales %>%
+    cor.dat <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, n,
                     xvar = one_of(input$CorX),
                     yvar = one_of(input$CorY)) %>%
@@ -1153,33 +1241,33 @@ server <- function(input, output, session) {
     } else {
       
       min <- list(gov = 1,
-                  comRule = 1,
-                  comPunish = 1,
-                  comOrg = 1,
-                  covidHope = -3,
-                  covidEff = -3,
-                  lone = 1,
-                  para = 0,
-                  consp = 0,
-                  behWash = -3,
-                  behAvoid = -3,
-                  isoPers = 0,
-                  isoOnl = 0,
-                  affAnx = 1,
-                  affBor = 1,
-                  affCalm = 1,
-                  affContent = 1,
-                  affDepr = 1,
-                  affEnerg = 1,
-                  affExc = 1,
-                  affNerv = 1,
-                  affExh = 1,
-                  affInsp = 1,
-                  affRel = 1,
-                  affHighPos = 1,
-                  affHighNeg = 1,
-                  affLowPos = 1,
-                  affLowNeg = 1)
+                 comRule = 1,
+                 comPunish = 1,
+                 comOrg = 1,
+                 covidHope = -3,
+                 covidEff = -3,
+                 lone = 1,
+                 para = 0,
+                 consp = 0,
+                 behWash = -3,
+                 behAvoid = -3,
+                 isoPers = 0,
+                 isoOnl = 0,
+                 affAnx = 1,
+                 affBor = 1,
+                 affCalm = 1,
+                 affContent = 1,
+                 affDepr = 1,
+                 affEnerg = 1,
+                 affExc = 1,
+                 affNerv = 1,
+                 affExh = 1,
+                 affInsp = 1,
+                 affRel = 1,
+                 affHighPos = 1,
+                 affHighNeg = 1,
+                 affLowPos = 1,
+                 affLowNeg = 1)
       
       max <- list(gov = 6,
                   comRule = 6,
@@ -1210,33 +1298,33 @@ server <- function(input, output, session) {
                   affLowPos = 5, 
                   affLowNeg = 5)
       lab.x.ends <- list(gov = c("1<br>unclear", "6<br>clear"), 
-                         comRule = c("1<br>not at all", "6<br>very much"),
-                         comPunish = c("1<br>not at all", "6<br>very much"),
-                         comOrg = c("1<br>not at all", "6<br>very much"),
-                         covidHope = c("-3<br>disagree", "3<br>agree"), 
-                         covidEff = c("-3<br>disagree", "3<br>agree"), 
-                         lone = c("1<br>Never", "5<br>All the time"),
-                         para = c("0<br>Not at all", "10<br>Very much"),
-                         consp = c("0%", "100%"),
-                         behWash = c("-3<br>disagree", "3<br>agree"), 
-                         behAvoid = c("-3<br>disagree", "3<br>agree"),
-                         isoPers = c(1,7),
-                         isoOnl = c(1,7),
-                         affAnx = c("1<br>not at all", "5<br>very much"),
-                         affBor = c("1<br>not at all", "5<br>very much"),
-                         affCalm = c("1<br>not at all", "5<br>very much"),
-                         affContent = c("1<br>not at all", "5<br>very much"),
-                         affDepr = c("1<br>not at all", "5<br>very much"),
-                         affEnerg = c("1<br>not at all", "5<br>very much"),
-                         affExc = c("1<br>not at all", "5<br>very much"),
-                         affNerv = c("1<br>not at all", "5<br>very much"),
-                         affExh = c("1<br>not at all", "5<br>very much"),
-                         affInsp = c("1<br>not at all", "5<br>very much"),
-                         affRel = c("1<br>not at all", "5<br>very much"),
-                         affHighPos = c("1<br>not at all", "5<br>very much"),
-                         affHighNeg = c("1<br>not at all", "5<br>very much"),
-                         affLowPos = c("1<br>not at all", "5<br>very much"),
-                         affLowNeg = c("1<br>not at all", "5<br>very much"))
+                       comRule = c("1<br>not at all", "6<br>very much"),
+                       comPunish = c("1<br>not at all", "6<br>very much"),
+                       comOrg = c("1<br>not at all", "6<br>very much"),
+                       covidHope = c("-3<br>disagree", "3<br>agree"), 
+                       covidEff = c("-3<br>disagree", "3<br>agree"), 
+                       lone = c("1<br>Never", "5<br>All the time"),
+                       para = c("0<br>Not at all", "10<br>Very much"),
+                       consp = c("0%", "100%"),
+                       behWash = c("-3<br>disagree", "3<br>agree"), 
+                       behAvoid = c("-3<br>disagree", "3<br>agree"),
+                       isoPers = c(1,7),
+                       isoOnl = c(1,7),
+                       affAnx = c("1<br>not at all", "5<br>very much"),
+                       affBor = c("1<br>not at all", "5<br>very much"),
+                       affCalm = c("1<br>not at all", "5<br>very much"),
+                       affContent = c("1<br>not at all", "5<br>very much"),
+                       affDepr = c("1<br>not at all", "5<br>very much"),
+                       affEnerg = c("1<br>not at all", "5<br>very much"),
+                       affExc = c("1<br>not at all", "5<br>very much"),
+                       affNerv = c("1<br>not at all", "5<br>very much"),
+                       affExh = c("1<br>not at all", "5<br>very much"),
+                       affInsp = c("1<br>not at all", "5<br>very much"),
+                       affRel = c("1<br>not at all", "5<br>very much"),
+                       affHighPos = c("1<br>not at all", "5<br>very much"),
+                       affHighNeg = c("1<br>not at all", "5<br>very much"),
+                       affLowPos = c("1<br>not at all", "5<br>very much"),
+                       affLowNeg = c("1<br>not at all", "5<br>very much"))
       lab.y.ends <- list(gov = c("unclear 1", "clear 6"), 
                          comRule = c("not at all 1", "very much 6"),
                          comPunish = c("not at all 1", "very much 6"),
@@ -1280,10 +1368,10 @@ server <- function(input, output, session) {
       lab.ends.x.js <- paste0("function(){console.log(this);
                                         if(this.isFirst){
                                         return '",
-                              lab.x.ends[input$CorX][[1]][1],
-                              "'} else if(this.isLast) {return '",
-                              lab.x.ends[input$CorX][[1]][2],
-                              "'} else {
+                            lab.x.ends[input$CorX][[1]][1],
+                            "'} else if(this.isLast) {return '",
+                            lab.x.ends[input$CorX][[1]][2],
+                            "'} else {
                                         return this.value
                                         }
                                         }")
@@ -1329,15 +1417,70 @@ server <- function(input, output, session) {
   })
   
   
+  reactive_ctry.scales <- eventReactive(
+    input$switch_sample,
+    {
+      if(input$switch_sample == "full") {
+        select_ctry_sample <<- all_valid_ctry
+        select_ctry_psych <<- "global"
+        select_sample <<- "full"
+        
+        
+        choiceNames_sample = lapply(seq_along(ctry.only.red$coded_country), 
+                             function(i) tagList(tags$img(src = ctry.only.red$flag[i], width = 20, height = 15), 
+                                                 ctry.only.red$coded_country[i],
+                                                 paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_sample = ctry.only.red$coded_country
+        choiceNames_psych = lapply(seq_along(ctry.red$coded_country), 
+                                   function(i) tagList(tags$img(src = ctry.red$flag[i], width = 20, height = 15), 
+                                                       ctry.red$coded_country[i],
+                                                       paste0(" (n=",prettyNum(ctry.red$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_psych = ctry.red$coded_country
+        
+    }
+      else if(input$switch_sample == "representative"){
+        select_ctry_sample <<- repr_valid_ctry
+        select_ctry_psych <<- "global"
+        select_sample <<- "representative"
+        
+        choiceNames_sample = lapply(seq_along(ctry.only.red.repr$coded_country), 
+                             function(i) tagList(tags$img(src = ctry.only.red.repr$flag[i], width = 20,  height = 15), 
+                                                 ctry.only.red.repr$coded_country[i],
+                                                 paste0(" (n=",prettyNum(ctry.only.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_sample = ctry.only.red.repr$coded_country
+        choiceNames_psych = lapply(seq_along(ctry.red.repr$coded_country), 
+                                   function(i) tagList(tags$img(src = ctry.red.repr$flag[i], width = 20, height = 15), 
+                                                       ctry.red.repr$coded_country[i],
+                                                       paste0(" (n=",prettyNum(ctry.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_psych = ctry.red.repr$coded_country
+        
+      }
+      
+      updateMultiInput_2(session = session, inputId = "sample_country_selection", choiceNames = choiceNames_sample, choiceValues = choiceValues_sample, 
+                         selected = select_ctry_sample)
+      updateMultiInput_2(session = session, inputId = "psych_country_selection", choiceNames = choiceNames_psych, choiceValues = choiceValues_psych, 
+                        selected = select_ctry_psych)
+      updateMultiInput_2(session = session, inputId = "cor_country_selection", choiceNames = choiceNames_sample, choiceValues = choiceValues_sample, 
+                         selected = select_ctry_sample)
+      
+      switch(input$switch_sample,
+             "full" = ctry.scales,
+             "representative" = ctry.scales.representative,
+             ctry.scales)
+    }
+  )
+  
+  
   observeEvent(input$reset_input_ctry, {
     shinyjs::reset("country_controls")
   })
+  
   
   observeEvent(input$sample_country_all, {
     updateMultiInput(
       session = session,
       inputId = "sample_country_selection",
-      selected = ctry.only.red$coded_country
+      selected = select_ctry_sample
     )
   })
   
@@ -1353,7 +1496,7 @@ server <- function(input, output, session) {
     updateMultiInput(
       session = session,
       inputId = "cor_country_selection",
-      selected = ctry.only.red$coded_country
+      selected = select_ctry_sample
     )
   })
   
@@ -1365,11 +1508,15 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  
   shinyjs::onclick("menu",
                    shinyjs::toggle(id = "sideFooter", anim = F))
   
   shiny:::flushReact()
+
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
