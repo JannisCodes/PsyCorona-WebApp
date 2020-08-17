@@ -1,101 +1,65 @@
 ## **Data for Shiny App**
 # Dataframe for Shiny App
 
-require(pacman)
 
-pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada,
-               knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
-               scales, haven, lubridate, naniar, stats, rnaturalearth, rnaturalearthdata)
-
-lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
+#renv::init() # new project 
+#renv::snapshot() # save changes
+#renv::restore() # load latest library (make sure packages are reproducible)
+# require(pacman)
+# 
+# pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada,
+#                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
+#                scales, haven, lubridate, naniar, stats, rnaturalearth, rnaturalearthdata)
+#
+lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada",
          "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "scales", "lubridate", "rnaturalearth", "rnaturalearthdata")
 
-invisible(lapply(lib, library, character.only = TRUE))  
+invisible(lapply(lib, library, character.only = TRUE))
 lapply(lib, library, character.only = TRUE)
 rm(lib)
 
-filter_cntry <- function(filter_vector,...) {
-  data <- filter_vector %>%
-    mutate_if(is.factor, as.numeric) %>%
+filter_cntry <- function(filter_vector, mean_vars, sd_vars=c(), custom_names=c(),...) {
+  ### Initial summary based on user-input vector ###
+  
+  data <- filter_vector %>% mutate_if(is.factor, as.numeric) %>%
     dplyr::summarize(
-      ...,
       n = n(),
-      
-      affAnx = mean(affAnx, na.rm = T),
-      affBor = mean(affBor, na.rm = T),
-      affCalm = mean(affCalm, na.rm = T),
-      affContent = mean(affContent, na.rm = T),
-      affDepr = mean(affDepr, na.rm = T),
-      affEnerg = mean(affEnerg, na.rm = T),
-      affExc = mean(affExc, na.rm = T),
-      affNerv = mean(affNerv, na.rm = T),
-      affExh = mean(affExh, na.rm = T),
-      affInsp = mean(affInsp, na.rm = T),
-      affRel = mean(affRel, na.rm = T),
-      affHighPos = mean(affHighPos.m, na.rm = T),
-      affHighNeg = mean(affHighNeg.m, na.rm = T),
-      affLowPos = mean(affLowPos.m, na.rm = T),
-      affLowNeg = mean(affLowNeg.m, na.rm = T),
-      
-      #ext = mean(ext.m, na.rm = T),
-      
-      gov = mean(extC19Msg, na.rm = T),
-      gov.sd = sd(extC19Msg, na.rm = T),
-      gov.se = gov.sd/sqrt(n),
-      
-      comRule = mean(c19IsStrict, na.rm = T),
-      comRule.sd = sd(c19IsStrict, na.rm = T),
-      comRule.se = comRule.sd/sqrt(n),
-      
-      comPunish = mean(c19IsPunish, na.rm = T),
-      comPunish.sd = sd(c19IsPunish, na.rm = T),
-      comPunish.se = comPunish.sd/sqrt(n),
-      
-      comOrg = mean(c19IsOrg, na.rm = T),
-      comOrg.sd = sd(c19IsOrg, na.rm = T),
-      comOrg.se = comOrg.sd/sqrt(n),
-      
-      lone = mean(lone.m, na.rm = T),
-      lone.sd = sd(lone.m, na.rm = T),
-      lone.se = lone.sd/sqrt(n),
-      
-      #bor = mean(bor.m, na.rm = T),
-      isoPers = mean(isoPers.m, na.rm = T),
-      isoPers.sd = sd(isoPers.m, na.rm = T),
-      isoPers.se = isoPers.sd/sqrt(n),
-      
-      isoOnl = mean(isoOnl.m, na.rm = T),
-      isoOnl.sd = sd(isoOnl.m, na.rm = T),
-      isoOnl.se = isoOnl.sd/sqrt(n),
-      
-      #beh = mean(beh.m, na.rm = T),
-      behWash = mean(c19perBeh01, na.rm = T),
-      behWash.sd = sd(c19perBeh01, na.rm = T),
-      behWash.se = behWash.sd/sqrt(n),
-      
-      behAvoid = mean(c19perBeh02, na.rm = T),
-      behAvoid.sd = sd(c19perBeh02, na.rm = T),
-      behAvoid.se = behAvoid.sd/sqrt(n),
-      
-      covidHope = mean(c19Hope, na.rm = T),
-      covidHope.sd = sd(c19Hope, na.rm = T),
-      covidHope.se = covidHope.sd/sqrt(n),
-      
-      covidEff = mean(c19Eff, na.rm = T),
-      covidEff.sd = sd(c19Eff, na.rm = T),
-      covidEff.se = covidEff.sd/sqrt(n),
-      
-      para = mean(para.m, na.rm = T),
-      para.sd = sd(para.m, na.rm = T),
-      para.se = para.sd/sqrt(n),
-      
-      consp = mean(consp.m, na.rm = T),
-      consp.sd = sd(consp.m, na.rm = T),
-      consp.se = consp.sd/sqrt(n)
-      
-      #jobinsec = mean(jobinsec.m, na.rm = T),
-      #pfs = mean(pfs.m, na.rm = T),
+      dplyr::across( {{ mean_vars }}, list(~mean(.,na.rm=TRUE),~sd(.,na.rm=TRUE),~sd(.,na.rm=TRUE)/sqrt(n)), .names= "{col}.{fn}"),
+      ...
     )
+  
+  if (length(sd_vars)){
+    ### Drop SD and SE columns for the only mean variables and rename all variables ###
+    for (var in mean_vars) {
+      m1var <- paste(var,".1",sep = "")
+      svar <- paste(var,".2",sep = "")
+      evar <- paste(var,".3",sep = "")
+      
+      colnames(data)[names(data)==m1var] <- var
+      
+      if(!var %in% sd_vars){
+        to_be_dropped <- c(svar,evar)
+        data <- data[, !names(data) %in% to_be_dropped]
+      } else {
+        colnames(data)[names(data)==svar] <- paste(var,".sd",sep = "")
+        colnames(data)[names(data)==evar] <- paste(var,".se",sep = "")
+      }
+    }
+  }
+  
+  if (length(custom_names)) {
+    ### Replace Names with custom Names ###
+    for (name_index in 1:length(custom_names[,2])) {
+      colnames(data)[names(data)==custom_names[name_index,1]] <- custom_names[name_index,2]
+      if(custom_names[name_index,1] %in% sd_vars){
+        svar <- paste(custom_names[name_index,1],".sd",sep = "")
+        evar <- paste(custom_names[name_index,1],".se",sep = "")
+        colnames(data)[names(data)==svar] <- paste(custom_names[name_index,2],".sd",sep = "")
+        colnames(data)[names(data)==evar] <- paste(custom_names[name_index,2],".se",sep = "")
+      }
+    }
+  }
+  
   return(data)
   
 }
@@ -110,9 +74,31 @@ categorical_filter <- function(filter,filter_glob,keyword){
   return(rbind(c.glob, c))
 }
 
+standardize <- function(raw_data, vars){
+  # uses mvars instead of _h for renaming handled below. Uses mutate to add
+  # new variables rather than overwriting the ones that are manipulated.
+  # We could use transmute to overwrite the harmonized variables if we do not
+  # need them in the final data frame to save some memory.
+  
+  # no as.numeric necessary here since the harmonized variables are already
+  # guaranteed to be numeric. This is good since mutating from factor to
+  # numeric would also affect parts of the raw.data we do not want to change.
+  
+  vars_h <- paste(vars,"_Harmonized",sep="")
+  standardized_data <- raw_data %>% dplyr::mutate(
+    dplyr::across( {{ vars_h }}, ~((respSetMean-.)/respSetSd), .names= "{col}_S")
+  )
+  
+  for (var in vars) {
+    var_h <- paste(var,"_Harmonized_S",sep = "")
+    colnames(standardized_data)[names(standardized_data)==var_h] <- paste(var,"_Standardized",sep = "")
+  }
+
+  return(standardized_data)
+}
+
 data_prep <- function(){
   print("Preparing Data")
-  
   world.data <- ne_countries(scale = "medium", returnclass = "sf")
   world.data$iso_a2[world.data$admin=="Kosovo"] <- "XK"
   raw.data <- read.csv("data/rawdatalabels.csv", na.strings = " ") # raw data provided
@@ -120,9 +106,29 @@ data_prep <- function(){
   raw.data <- raw.data %>% drop_na(coded_country) # drop participants with missing counties
   unique(raw.data$coded_country)[!unique(raw.data$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
   
+  #Re-order factor levels and make numeric variables with the right range
+  raw.data <- raw.data %>%
+    mutate_at(.vars = vars(matches("^(?=.*c19perBeh)(?!.*harmonized)|^(?=.*c19Hope)(?!.*harmonized)|^(?=.*c19Eff)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("Strongly disagree", "Somewhat disagree", "Disagree", "Neither agree nor disagree", "Somewhat agree", "Agree", "Strongly agree")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*c19perBeh)(?!.*harmonized|.*label)|^(?=.*c19Hope)(?!.*harmonized|.*label)|^(?=.*c19Eff)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("Strongly disagree", "Somewhat disagree", "Disagree", "Neither agree nor disagree", "Somewhat agree", "Agree", "Strongly agree")))-4))
+  
+
+  ### Variables to consider ###
+  vars <- read.csv("data/vars.csv")
+  mvars <- as.character(vars$mvars)
+  mvars_s <- paste(mvars,"_Standardized",sep="")
+  sdvars <- as.character(na.omit(vars$svars))
+  sdvars_s <- paste(sdvars,"_Standardized",sep="")
+  custom_names <- na.omit(data.frame(vars$mvars,vars$custom_names) %>% mutate_all(as.character))
+  custom_names_s <- custom_names
+  custom_names_s$vars.mvars <- paste(custom_names_s$vars.mvars,"_Standardized",sep="")
+  custom_names_s$vars.custom_names <- paste(custom_names_s$vars.custom_names,"_Standardized",sep="")
+  rm(vars)
+  
   
   ### Calculate compound scores ###
-  raw.data$affHighPos.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
+  raw.data$affHighPos.m <- scoreItems(keys=c(1,1,1), items = raw.data  %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
   raw.data$affHighNeg.m <- scoreItems(keys=c(1,1), items = raw.data %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
   raw.data$affLowPos.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
   raw.data$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
@@ -132,6 +138,22 @@ data_prep <- function(){
   raw.data$para.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^para[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
   raw.data$consp.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
   
+  
+  ### Calculate compound scores for Harmonized ###
+  raw.data$affHighPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affEnerg_Harmonized, affExc_Harmonized, affInsp_Harmonized), min = 1, max = 5)$scores
+  raw.data$affHighNeg.m_Harmonized <- scoreItems(keys=c(1,1), items = raw.data %>% dplyr::select(affAnx_Harmonized, affNerv_Harmonized), min = 1, max = 5)$scores[1]
+  raw.data$affLowPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affCalm_Harmonized, affContent_Harmonized, affRel_Harmonized), min = 1, max = 5)$scores
+  raw.data$affLowNeg.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affBor_Harmonized, affExh_Harmonized, affDepr_Harmonized), min = 1, max = 5)$scores
+  raw.data$lone.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^lone[0][[:digit:]]_Harmonized$")), min = 1, max = 5)$scores # changed selection to use RE
+  raw.data$isoPers.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores # No harmonized one
+  raw.data$isoOnl.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores # No harmonized one
+  raw.data$para.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^para[0][[:digit:]]_Harmonized$")), min = 0, max = 10)$scores # changed selection to use RE
+  raw.data$consp.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]_Harmonized$")), min = 0, max = 10)$scores # changed selection to use RE
+  
+  
+  ### Add standardized variables ###
+  raw.data <- standardize(raw.data,mvars)
+  
   ### re-code EDU levels ###
   levels(raw.data$edu) <- gsub("General s", "S", levels(raw.data$edu))
   
@@ -139,25 +161,37 @@ data_prep <- function(){
   shiny_prep <- merge(x = raw.data, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
   shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
   
-  ### Creating scales for entire Sample ###
-  ctry.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)) %>% dplyr::group_by(coded_country))
-  global.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)),coded_country = "global",iso_a2 = NA,
+  ### Creating scales for entire Sample and standardized entire sample ###
+  ctry.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)) %>% dplyr::group_by(coded_country),mvars,sdvars,custom_names)
+  global.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)),mvars,sdvars,custom_names,coded_country = "global",iso_a2 = NA,
                                 flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
   
-  ### Creating scales for representative Sample ###
-  ctry.scales.representative <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes") %>% dplyr::group_by(coded_country))
-  global.scales.representative <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes"),coded_country = "global",iso_a2 = NA,
+  ctry.scales_s <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)) %>% dplyr::group_by(coded_country),mvars_s,sdvars_s,custom_names_s)
+  global.scales_s <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)),mvars_s,sdvars_s,custom_names_s,coded_country = "global",iso_a2 = NA,
+                                flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
+  
+  ### Creating scales for representative Sample and standardized represenatative sample ###
+  ctry.scales.representative <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes") %>% dplyr::group_by(coded_country),mvars,sdvars,custom_names)
+  global.scales.representative <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes"),mvars,sdvars,custom_names,coded_country = "global",iso_a2 = NA,
                                                flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
   
+  ctry.scales.representative_s <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes") %>% dplyr::group_by(coded_country),mvars_s,sdvars_s,custom_names_s)
+  global.scales.representative_s <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country) & representative == "Yes"),mvars_s,sdvars_s,custom_names_s,coded_country = "global",iso_a2 = NA,
+                                               flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
   
   ctry.scales <- merge(x = ctry.scales, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
+  ctry.scales_s <- merge(x = ctry.scales_s, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
+  
   ctry.scales.representative <- merge(x = ctry.scales.representative, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
+  ctry.scales.representative_s <- merge(x = ctry.scales.representative_s, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
   
-  ### Merger for entire sample with global variable ###
+  ### Merger for entire sample with global variable and again for standardized entire sample ###
   ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
+  ctry.scales_s <- rbind(global.scales_s, ctry.scales_s); rm(global.scales_s)
   
-  ### Merger for representative sample with global (representative) variable ###
+  ### Merger for representative sample with global (representative) variable and again for standardized representative sample ###
   ctry.scales.representative <- rbind(global.scales.representative, ctry.scales.representative); rm(global.scales.representative)
+  ctry.scales.representative_s <- rbind(global.scales.representative_s, ctry.scales.representative_s); rm(global.scales.representative_s)
   
   
   scramble20 <- function(x) {ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x)}
@@ -293,21 +327,32 @@ data_prep <- function(){
   
   ### Merger Ctry with categorical and Ctry.rep with categorical.rep
   
-  ## Entire sample ##
-  #ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
+  ## Entire sample and standardized entire sample ##
   ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
   ctry.scales <- plyr::join(x=ctry.scales, y=gender, by="coded_country")
   ctry.scales <- plyr::join(x=ctry.scales, y=age, by="coded_country")
   ctry.scales <- plyr::join(x=ctry.scales, y=edu, by="coded_country")
   ctry.scales <- plyr::join(x=ctry.scales, y=pol, by="coded_country")
+  
+  ctry.scales_s <- plyr::join(x=ctry.scales_s, y=languages, by="coded_country")
+  ctry.scales_s <- plyr::join(x=ctry.scales_s, y=gender, by="coded_country")
+  ctry.scales_s <- plyr::join(x=ctry.scales_s, y=age, by="coded_country")
+  ctry.scales_s <- plyr::join(x=ctry.scales_s, y=edu, by="coded_country")
+  ctry.scales_s <- plyr::join(x=ctry.scales_s, y=pol, by="coded_country")
   rm(languages, gender, age, edu, pol)
   
-  ## Representative Sample ##
+  ## Representative Sample and standardized representative sample ##
   ctry.scales.representative <- plyr::join(x=ctry.scales.representative, y=languages.rep, by="coded_country")
   ctry.scales.representative <- plyr::join(x=ctry.scales.representative, y=gender.rep, by="coded_country")
   ctry.scales.representative <- plyr::join(x=ctry.scales.representative, y=age.rep, by="coded_country")
   ctry.scales.representative <- plyr::join(x=ctry.scales.representative, y=edu.rep, by="coded_country")
   ctry.scales.representative <- plyr::join(x=ctry.scales.representative, y=pol.rep, by="coded_country")
+  
+  ctry.scales.representative_s <- plyr::join(x=ctry.scales.representative_s, y=languages.rep, by="coded_country")
+  ctry.scales.representative_s <- plyr::join(x=ctry.scales.representative_s, y=gender.rep, by="coded_country")
+  ctry.scales.representative_s <- plyr::join(x=ctry.scales.representative_s, y=age.rep, by="coded_country")
+  ctry.scales.representative_s <- plyr::join(x=ctry.scales.representative_s, y=edu.rep, by="coded_country")
+  ctry.scales.representative_s <- plyr::join(x=ctry.scales.representative_s, y=pol.rep, by="coded_country")
   rm(languages.rep, gender.rep, age.rep, edu.rep, pol.rep)
   
   ### Remaining Selection and export ###
@@ -330,9 +375,12 @@ data_prep <- function(){
   ctry.scales <- ctry.scales %>%
     filter(n>=20)
   
+  ctry.scales_s <- ctry.scales_s %>%
+    filter(n>=20)
+  
   latest.DateTime <- format(max(ymd_hms(shiny_prep$EndDate, tz = "CET"), na.rm=T), "%d %B, %Y - %H:%M %Z")
   
   ## export for Shiny ##
-  save(ctry.scales, ctry.scales.representative, world.n, ctry.red, ctry.only.red, latest.DateTime, 
+  save(ctry.scales, ctry.scales.representative, ctry.scales_s, ctry.scales.representative_s, world.n, ctry.red, ctry.only.red, latest.DateTime, 
        file = "data/shinyDataAggregated.RData")
 }
