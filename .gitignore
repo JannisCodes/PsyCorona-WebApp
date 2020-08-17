@@ -9,6 +9,5 @@
 .html
 /data
 /rsconnect
-ShinyAppsSetup.R
-app_boxplots.R
 /alternative versions
+ShinyAppsSetup.R
