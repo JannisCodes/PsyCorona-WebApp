@@ -733,15 +733,18 @@ server <- function(input, output, session) {
   })
   
   output$freqPlot <- renderHighchart({
+    #input$sample_country_selection <- ctry.only.red$coded_country
+    
     hcmap(download_map_data = FALSE,
           data = world.n %>% filter(coded_country %in% input$sample_country_selection), 
           value = "n",
           joinBy = c("iso-a2", "iso_a2"), name = "sample size",
           #dataLabels = list(enabled = TRUE, format = '{point.name}'),
           borderColor = "#FAFAFA", borderWidth = 0.1,
-          tooltip = list(valueDecimals = 0, valuePrefix = "n = "))%>% 
+          tooltip = list(valueDecimals = 0, valuePrefix = "n = "),
+          margin = 0)%>% 
       hc_mapNavigation(enabled = TRUE) %>%
-      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic") 
+      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic", endOnTick=FALSE, maxPadding=0)
   })
   #Color schemes: https://carto.com/carto-colors/
   
@@ -1140,7 +1143,7 @@ server <- function(input, output, session) {
   
   output$cor <- renderHighchart({
     # for testing:
-    # input = list(CorX = "covidHope", CorY = "covidEff")
+    # input = list(CorX = "behAvoid", CorY = "behWash", cor_country_selection = ctry.only.red$coded_country)
     
     cor.dat <- ctry.scales %>%
       dplyr::select(coded_country, n,
