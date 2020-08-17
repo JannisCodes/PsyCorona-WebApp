@@ -1143,7 +1143,7 @@ server <- function(input, output, session) {
   
   output$cor <- renderHighchart({
     # for testing:
-    # input = list(CorX = "behAvoid", CorY = "behWash", cor_country_selection = ctry.only.red$coded_country)
+    # input = list(CorX = "gov", CorY = "comPunish", cor_country_selection = ctry.only.red$coded_country)
     
     cor.dat <- ctry.scales %>%
       dplyr::select(coded_country, n,
@@ -1165,6 +1165,35 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
+      
+      title.txt <- list(gov = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus?",
+                        comRule = "To what extent is your commmunity developing strict rules in response to the Coronavirus?", 
+                        comPunish = "To what extent is your commmunity punishing people who deviate from the rules that have been put in place in response to the Coronavirus?", 
+                        comOrg = "To what extent is your commmunity well organized in responding to the Coronavirus?",
+                        covidHope = "I have high hopes that the situation regarding coronavirus will improve.", 
+                        covidEff = "I think that this country is able to fight the Coronavirus.",
+                        lone = "Mean Loneliness Scores",
+                        para = "Mean State Paranoia Scores",
+                        consp = "Mean Conspiracy Scores",
+                        behWash = "To minimize my chances of getting corona virus I wash my hands more often.", 
+                        behAvoid = "To minimize my chances of getting corona virus I avoid crowded spaces.",
+                        isoPers = "Number of days per week with <b>in-person</b> contacts", 
+                        isoOnl = "Number of days per week with <b>online</b> contacts",
+                        affAnx = "Anxious", 
+                        affBor = "Bored", 
+                        affCalm = "Calm", 
+                        affContent = "Content", 
+                        affDepr = "Depressed", 
+                        affEnerg = "Energetic", 
+                        affExc = "Excited", 
+                        affNerv = "Nervous", 
+                        affExh = "Exhausted", 
+                        affInsp = "Inspired", 
+                        affRel = "Relaxed",
+                        affHighPos = "High Arousal Positive", 
+                        affHighNeg = "High Arousal Negative",
+                        affLowPos = "Low Arousal Positive", 
+                        affLowNeg = "Low Arousal Negative")
       
       min <- list(gov = 1,
                  comRule = 1,
