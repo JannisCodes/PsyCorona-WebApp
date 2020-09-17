@@ -86,7 +86,7 @@ standardize <- function(raw_data, vars){
   
   vars_h <- paste(vars,"_Harmonized",sep="")
   standardized_data <- raw_data %>% dplyr::mutate(
-    dplyr::across( {{ vars_h }}, ~((respSetMean-.)/respSetSd), .names= "{col}_S")
+    dplyr::across( {{ vars_h }}, ~((.-respSetMean)/respSetSd), .names= "{col}_S")
   )
   
   for (var in vars) {
@@ -104,16 +104,47 @@ data_prep <- function(){
   raw.data <- read.csv("data/rawdatalabels.csv", na.strings = " ") # raw data provided
   #raw.data$coded_country[raw.data$coded_country == " "] <- NA # set empty cells in coded_country column to NA
   raw.data <- raw.data %>% drop_na(coded_country) # drop participants with missing counties
+  raw.data <- raw.data[raw.data$EndDate < "5/1/2020",] # drop responses after April
   unique(raw.data$coded_country)[!unique(raw.data$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
   
+  #table(raw.data$consp01)
   #Re-order factor levels and make numeric variables with the right range
   raw.data <- raw.data %>%
     mutate_at(.vars = vars(matches("^(?=.*c19perBeh)(?!.*harmonized)|^(?=.*c19Hope)(?!.*harmonized)|^(?=.*c19Eff)(?!.*harmonized)", perl = T)),
               .funs = list(label = ~factor(., levels = c("Strongly disagree", "Somewhat disagree", "Disagree", "Neither agree nor disagree", "Somewhat agree", "Agree", "Strongly agree")))) %>%
     mutate_at(.vars = vars(matches("^(?=.*c19perBeh)(?!.*harmonized|.*label)|^(?=.*c19Hope)(?!.*harmonized|.*label)|^(?=.*c19Eff)(?!.*harmonized|.*label)", perl = T)),
-              .funs = list(~as.numeric(factor(., levels = c("Strongly disagree", "Somewhat disagree", "Disagree", "Neither agree nor disagree", "Somewhat agree", "Agree", "Strongly agree")))-4))
-  
+              .funs = list(~as.numeric(factor(., levels = c("Strongly disagree", "Somewhat disagree", "Disagree", "Neither agree nor disagree", "Somewhat agree", "Agree", "Strongly agree")))-4)) %>%
+    
+    mutate_at(.vars = vars(matches("^(?=.*aff)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("Very slightly or not at all", "A little", "Moderately", "Quite a bit", "Extremely")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*aff)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("Very slightly or not at all", "A little", "Moderately", "Quite a bit", "Extremely"))))) %>%
+    
+    mutate_at(.vars = vars(matches("^(?=.*lone)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("Never", "Rarely", "Sometimes", "Often", "All the time")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*lone)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("Never", "Rarely", "Sometimes", "Often", "All the time"))))) %>%
+    
+    mutate_at(.vars = vars(matches("^(?=.*para)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("Not at all", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Very much")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*para)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("Not at all", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Very much")))-1)) %>%
+    
+    mutate_at(.vars = vars(matches("^(?=.*consp)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("Certainly not 0%", "10%", "20%", "30%", "40%", "Undecided 50%", "60%", "70%", "80%", "90%", "Certainly 100%")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*consp)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("Certainly not 0%", "10%", "20%", "30%", "40%", "Undecided 50%", "60%", "70%", "80%", "90%", "Certainly 100%")))-1)) %>%
 
+    mutate_at(.vars = vars(matches("^(?=.*extC19Msg)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("1: Messages are completely unclear/ ambiguous", "2", "3", "4", "5", "6: Messages are very clear/ unambiguous")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*extC19Msg)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("1: Messages are completely unclear/ ambiguous", "2", "3", "4", "5", "6: Messages are very clear/ unambiguous"))))) %>%
+    
+    mutate_at(.vars = vars(matches("^(?=.*c19IsStrict)(?!.*harmonized)|^(?=.*c19IsPunish)(?!.*harmonized)|^(?=.*c19IsOrg)(?!.*harmonized)", perl = T)),
+              .funs = list(label = ~factor(., levels = c("1: not at all", "2", "3", "4", "5", "6: Very much")))) %>%
+    mutate_at(.vars = vars(matches("^(?=.*c19IsStrict)(?!.*harmonized|.*label)|^(?=.*c19IsPunish)(?!.*harmonized|.*label)|^(?=.*c19IsOrg)(?!.*harmonized|.*label)", perl = T)),
+              .funs = list(~as.numeric(factor(., levels = c("1: not at all", "2", "3", "4", "5", "6: Very much")))))
+  
   ### Variables to consider ###
   vars <- read.csv("data/vars.csv")
   mvars <- as.character(vars$mvars)
@@ -126,7 +157,6 @@ data_prep <- function(){
   custom_names_s$vars.custom_names <- paste(custom_names_s$vars.custom_names,"_Standardized",sep="")
   rm(vars)
   
-  
   ### Calculate compound scores ###
   raw.data$affHighPos.m <- scoreItems(keys=c(1,1,1), items = raw.data  %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
   raw.data$affHighNeg.m <- scoreItems(keys=c(1,1), items = raw.data %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
@@ -137,7 +167,6 @@ data_prep <- function(){
   raw.data$isoOnl.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores
   raw.data$para.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^para[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
   raw.data$consp.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
-  
   
   ### Calculate compound scores for Harmonized ###
   raw.data$affHighPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affEnerg_Harmonized, affExc_Harmonized, affInsp_Harmonized), min = 1, max = 5)$scores
@@ -153,6 +182,8 @@ data_prep <- function(){
   
   ### Add standardized variables ###
   raw.data <- standardize(raw.data,mvars)
+  raw.data <- raw.data %>% dplyr::na_if("NaN")
+  for (j in 1:ncol(raw.data)) set(raw.data, which(is.infinite(raw.data[[j]])), j, NA)
   
   ### re-code EDU levels ###
   levels(raw.data$edu) <- gsub("General s", "S", levels(raw.data$edu))
