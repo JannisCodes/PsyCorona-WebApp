@@ -12,7 +12,8 @@
 #                scales, haven, lubridate, naniar, stats, rnaturalearth, rnaturalearthdata)
 #
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada",
-         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "scales", "lubridate", "rnaturalearth", "rnaturalearthdata")
+         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander",
+         "scales", "lubridate", "rnaturalearth", "rnaturalearthdata")
 
 invisible(lapply(lib, library, character.only = TRUE))
 lapply(lib, library, character.only = TRUE)
@@ -104,7 +105,7 @@ data_prep <- function(){
   raw.data <- read.csv("data/rawdatalabels.csv", na.strings = " ") # raw data provided
   #raw.data$coded_country[raw.data$coded_country == " "] <- NA # set empty cells in coded_country column to NA
   raw.data <- raw.data %>% drop_na(coded_country) # drop participants with missing counties
-  raw.data <- raw.data[raw.data$EndDate < "5/1/2020",] # drop responses after April
+  #raw.data <- raw.data[raw.data$EndDate < "5/1/2020",] # drop responses after April
   unique(raw.data$coded_country)[!unique(raw.data$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
   
   #table(raw.data$consp01)
@@ -191,6 +192,14 @@ data_prep <- function(){
   # all ISO-2 country code to dataframe and flags
   shiny_prep <- merge(x = raw.data, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
   shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
+  
+  ### export shiny frame for longitudinal setup ###
+  
+  save(shiny_prep, 
+       file = "data/shinyDataShinyPrep.RData")
+  
+  # exclude participants only for remaining cross-sectional analysis
+  shiny_prep <- shiny_prep[shiny_prep$EndDate < "5/1/2020",]
   
   ### Creating scales for entire Sample and standardized entire sample ###
   ctry.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)) %>% dplyr::group_by(coded_country),mvars,sdvars,custom_names)
