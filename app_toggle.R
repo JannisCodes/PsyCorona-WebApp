@@ -5,32 +5,67 @@ library(ggplot2)
 library(stats)
 library(shinydashboard)
 library(metathis)
-#library(dygraphs)
-#library(RColorBrewer)
 library(stringr)
-#library(DT)
 library(shinyjs)
 library(shinyWidgets)
 library(r2d3)
 library(radarchart)
 library(haven)
-#library(leaflet)
 library(highcharter)
 library(rgeos)
 library(scales)
 library(grDevices)
 library(shinyalert)
 library(shinyBS)
+library(htmltools)
+source("R/dependencies.R")
+source("R/input-multi.R")
+source("R/utils.R")
+source("data_prep_shiny.R")
 
 # R Studio Clean-Up:
 #cat("\014") # clear console
-#rm(list=ls()) # clear workspace
+#rm(list=ls()) # clear workspace (better way: Ctrl+Shift+F10 but make sure that you are not saving your workspace to your .Rdata file)
 #gc() # garbage collector
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # usually set by project
 
 # load data:
+if (!file.exists("data/shinyDataAggregated.RData")) {
+  data_prep()
+}
 load("data/shinyDataAggregated.RData")
-world.n$iso_a2[world.n$coded_country=="Kosovo"] <- "KV"
+
+
+updateMultiInput_2 <- function (session, inputId, label = NULL, selected = NULL, choices = NULL, choiceValues = NULL, choiceNames = NULL) {
+  if (is.null(choices)) {
+    if (is.null(choiceValues))
+      stop("If choices = NULL, choiceValues must be not NULL")
+    if (length(choiceNames) != length(choiceValues)) {
+      stop("`choiceNames` and `choiceValues` must have the same length.")
+    }
+    choiceValues <- as.list(choiceValues)
+    choiceNames <- as.list(choiceNames)
+    choices_2 <- tagList(
+      lapply(
+        X = seq_along(choiceNames),
+        FUN = function(i) {
+          htmltools::tags$option(value = choiceValues[[i]], as.character(choiceNames[[i]]),
+                                 selected = if(choiceValues[[i]] %in% selected) "selected")
+        }
+      )
+    )
+  }
+  else {
+    choices_2 <- if (!is.null(choices))
+      choicesWithNames(choices_2)
+  }
+  if (!is.null(selected))
+    selected <- validateSelected(selected, choices_2, inputId)
+  options <- as.character(makeChoices(choices = choices, choiceValues = choiceValues, choiceNames = choiceNames, selected = selected))
+  message <- dropNulls(list(label = label, options = options, value = selected))
+  session$sendInputMessage(inputId, message)
+}
+
 
 r2d3_script <- "
 // !preview r2d3 data= data.frame(y = 0.1, ylabel = '1%', fill = '#E69F00', mouseover = 'green', label = 'one', id = 1)
@@ -101,6 +136,24 @@ function col_heigth() {return svg_height() / data.length * 0.95; }
 r2d3_file <- tempfile()
 writeLines(r2d3_script, r2d3_file)
 
+all_valid_ctry <- ctry.scales$coded_country[! ctry.scales$coded_country %in% c("representative")]
+all_valid_ctry.only.red <- all_valid_ctry[! all_valid_ctry %in% c("global")]
+repr_valid_ctry.only.red <- ctry.scales.representative$coded_country
+repr_valid_ctry <- append(c("representative"), repr_valid_ctry.only.red)
+
+# TODO: TEMPORARY
+ctry.only.red <- ctry.only.red[! ctry.only.red$coded_country %in% c("representative"), ]
+ctry.only.red.repr <- ctry.scales.representative %>% dplyr::select(coded_country, iso_a2, flag, n) %>% filter(coded_country != "global")
+ctry.red.repr <- ctry.scales.representative %>% dplyr::select(coded_country, iso_a2, flag, n)
+ctry.red <- ctry.red[ctry.red$coded_country %in% all_valid_ctry, ]
+
+
+# Default
+select_ctry_sample <- all_valid_ctry
+select_ctry_psych <- "global"
+select_sample <- "full"
+select_transformation <- "raw"
+
 
 ui <- dashboardPage(
   title = "PsyCorona: Data Visualization",
@@ -112,18 +165,20 @@ ui <- dashboardPage(
                   #              )
                   ),
   dashboardSidebar(
-    sidebarMenu(
-      menuItem("The Sample", tabName = "sample", icon = icon("fas fa-users")),
+    sidebarMenu(id = "sidebarMenu",
+      menuItem("Our Sample", tabName = "sample", icon = icon("fas fa-users")),
       menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
       menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
       menuItem("Data", tabName = "data", icon = icon("fas fa-share-square")),
       menuItem("About", tabName = "about", icon = icon("info")),
-      menuItem(HTML(paste0("Take the Suvey Now ", icon("external-link"))), icon=icon("fas fa-file-signature"), href = "https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", newtab = T)),
+      menuItem(HTML(paste0("Take the survey now ", icon("external-link"))), icon=icon("fas fa-file-signature"), href = "https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", newtab = T),
+      uiOutput("dynamic_content")),
     shinyjs::useShinyjs(),
     tags$footer(HTML("<strong>Copyright &copy; 2020 <a href=\"https://psycorona.org/about/\" target=\"_blank\">PsyCorona</a>.</strong> 
                    <br>This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.
                    <br><a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\" target=\"_blank\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a>
-                   "), 
+                   <br>Last updated:<br>"), 
+                  latest.DateTime,
                 id = "sideFooter",
                   align = "left",
                   style = "
@@ -142,7 +197,7 @@ ui <- dashboardPage(
     tags$head(tags$meta(name = "viewport", content = "width=1600"), uiOutput("body")),
     tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")),
     #tags$head(tags$link(rel="shortcut icon", href="https://raw.githubusercontent.com/JannisCodes/PsyCorona-WebApp/master/www/faviconData.png")),
-    tags$head(tags$link(rel = "shortcut icon", href = "www/favicon.ico")),
+    tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")),
     tags$style(
       type = 'text/css',
       '.bg-aqua {background-color: #3c8dbe!important; }
@@ -191,7 +246,7 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "sample",
               useShinyalert(),
-              h3("The Sample"),
+              h3("Our Sample"),
               bsAlert("dataAlert"),
               
               fluidRow(
@@ -243,7 +298,7 @@ ui <- dashboardPage(
                                                              ctry.only.red$coded_country[i],
                                                              paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
                     choiceValues = ctry.only.red$coded_country,
-                    selected = ctry.only.red$coded_country
+                    selected = all_valid_ctry
                   ),
                   
                   hr(),
@@ -447,7 +502,7 @@ ui <- dashboardPage(
                                                               ctry.only.red$coded_country[i],
                                                               paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")"))),
                      choiceValues = ctry.only.red$coded_country,
-                     selected = ctry.only.red$coded_country
+                     selected = all_valid_ctry
                    ),
                    div(style="display:inline-block;width:100%;text-align: center;",
                        actionBttn(
@@ -501,7 +556,7 @@ ui <- dashboardPage(
                     <li>When we show summaries of categorical data (e.g., percentage of people identifying as female), we additionally apply <b>data perturbations</b> for small groups. This means that the counts and percentages 
                     for groups that comprise less than 20 people (less than 50 for political orientation) have been slightly changed (e.g., a random number between -2 and 2 or between -5 and 5 has been added; 
                     this process is also sometimes referred to as 'artificial noise addition'). 
-                    <br>Please note that this also means that the numbers are not always 100% accurate. However, with this method, we can represent the full diversity of the sample while still protecting the identities of people in 
+                    <br>Please note that this also means that the numbers are not always 100% accurate. However, with this method, we can represent the full diversity of our sample while still protecting the identities of people in 
                     small or vulnerable groups.</li>
                     </ol>
                     These are the main ways in which we protect the personal data of our participants and make sure that no individual is identifiable within the application. If you have any questions or concerns, please feel
@@ -596,7 +651,7 @@ ui <- dashboardPage(
                   "The remaining three tabs offer tools to visualize the psychological data we collect in this project.",
                   tags$ul(
                     tags$li("The ",
-                            a("The Sample", onclick = "openTab('sample')", href="#"),
+                            a("Our Sample", onclick = "openTab('sample')", href="#"),
                             " tab offers an insight into the diversity of our participants. We share compound information on some demographic variables,
                                       as well as the number of participants we have reached in each country. Please note that to protect the privacy and anonymity
                                       of our participants data visualizations are only available for selections of more than 20 people."),
@@ -665,19 +720,51 @@ server <- function(input, output, session) {
               #alertId="a1",
               title = paste(icon("warning"),"Data Notification"),
               content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
-              For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected during the initial weeks of the pandemic. 
+              For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
               This means the data might not be representative of how countries are doing right now. Both <b> nationally representative and developmental displays of the data will be available soon</b>.",
               style = "warning")
+  
+  output$dynamic_content <- renderUI({
+    
+    if (input$sidebarMenu == "sample") {
+      
+      dyn_ui <- awesomeRadio(inputId = "switch_sample", 
+                             label = "Sample:",
+                             choices = c("Full sample" = "full",
+                                         "Representative sample" = "representative"),
+                             selected = select_sample)
+      
+    } 
+    else if (input$sidebarMenu == "Variables") {
+      
+      dyn_ui <- list(awesomeRadio(inputId = "switch_sample", 
+                                  label = "Sample:",
+                                  choices = c("Full sample" = "full", 
+                                              "Representative sample" = "representative"),
+                                  selected = select_sample),
+                     awesomeRadio(inputId = "switch_transformation", 
+                                  label = "Transformation:",
+                                  choices = c("Raw data" = "raw", 
+                                              "Standardized" = "standardized"),
+                                  selected = select_transformation)
+      )
+    }
+    else {dyn_ui <- NULL}
+    
+    return(dyn_ui)
+  })
+
+
   
   output$sample.bar.NA <- renderText({
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     
-    test <- ctry.scales %>%
+    test <- reactive_ctry.scales() %>%
       filter(coded_country %in% input$sample_country_selection) %>%
       select(starts_with(input$var)) %>%
       t() %>%
       as.data.frame()
-    colnames(test) <- input$sample_country_selection
+    # colnames(test) <- input$sample_country_selection
     test <- test %>%
       mutate(n = rowSums(., na.rm=TRUE),
              label = str_replace(rownames(.), ".*_", "")) %>%
@@ -685,6 +772,7 @@ server <- function(input, output, session) {
              label != "<NA>")
     
     ifelse(sum(test$n)<20, "Not enough data to display summary","")
+    # ifelse(sum(test$n)<20, "","")
   })
   
   output$SampleTxt <- renderText({
@@ -702,49 +790,35 @@ server <- function(input, output, session) {
     #input <- list(var = "language", sample_country_selection = c("France", "Germany"))
     #input <- list(var = "gender", sample_country_selection = c("Poland", "Romania", "Albania"))
     
-    dem <- ctry.scales %>%
+    dem <- reactive_ctry.scales() %>%
       filter(coded_country %in% input$sample_country_selection) %>%
       select(starts_with(input$var)) %>%
       t() %>%
       as.data.frame()
-    colnames(dem) <- input$sample_country_selection
-    dem <- dem %>%
+    # colnames(dem) <- input$sample_country_selection
+    dem %>%
       mutate(n = rowSums(., na.rm=TRUE),
              label = str_replace(rownames(.), ".*_", "")) %>%
       arrange(desc(n)) %>%
       filter(n > 0,
              label != "<NA>") %>%
       mutate(y = n,
-             yperc = n/sum(n)*100,
              ylabel = scales::percent(n/sum(n), accuracy = 0.01), #prettyNum(n/sum(n)*100, big.mark = ",", format = "f", digits = 2),
              fill = "#3b738f", #ifelse(label != input$val, "#E69F00", "red"),
-             mouseover = "#2a5674") 
-    
-    # hchart(dem, "bar", 
-    #        hcaes(x = label, y = yperc)) %>%
-    #   hc_xAxis(title = "") %>%
-    #   hc_yAxis(labels = list(format = "{value}%"),
-    #            title = "") %>%
-    #   hc_tooltip(formatter = JS("function(){
-    #                   return ('Country: ' + this.yperc)}"))
-    
-    dem %>%
+             mouseover = "#2a5674") %>%
       r2d3(r2d3_file)
   })
   
   output$freqPlot <- renderHighchart({
-    #input$sample_country_selection <- ctry.only.red$coded_country
-    
     hcmap(download_map_data = FALSE,
-          data = world.n %>% filter(coded_country %in% input$sample_country_selection), 
+          data = reactive_ctry.scales() %>% filter(coded_country %in% input$sample_country_selection),
           value = "n",
           joinBy = c("iso-a2", "iso_a2"), name = "sample size",
           #dataLabels = list(enabled = TRUE, format = '{point.name}'),
           borderColor = "#FAFAFA", borderWidth = 0.1,
-          tooltip = list(valueDecimals = 0, valuePrefix = "n = "),
-          margin = 0)%>% 
+          tooltip = list(valueDecimals = 0, valuePrefix = "n = "))%>% 
       hc_mapNavigation(enabled = TRUE) %>%
-      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic", endOnTick=FALSE, maxPadding=0)
+      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic") 
   })
   #Color schemes: https://carto.com/carto-colors/
   
@@ -752,7 +826,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(psych_country_selection = c("global"))
     
-    governmentRed <- ctry.scales %>%
+    governmentRed <- reactive_ctry.scales() %>%
       select(coded_country, starts_with("gov")) %>%
       filter(coded_country %in% input$psych_country_selection) %>%
       mutate(mean = gov,
@@ -804,7 +878,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(ComVars = "comRule", psych_country_selection = c("Germany", "France"))
     
-    communityRed <- ctry.scales %>%
+    communityRed <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, 
                     n,
                     mean = one_of(input$ComVars),
@@ -863,7 +937,7 @@ server <- function(input, output, session) {
     # for testing:
     # input = list(CogVars = "covidHope", cog_country_selection = c("Germany", "France"))
     
-    cognitiveRed <- ctry.scales %>%
+    cognitiveRed <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, 
                     n,
                     mean = one_of(input$CogVars),
@@ -960,7 +1034,7 @@ server <- function(input, output, session) {
     
     if (input$BehVars == "iso") {
       
-      behaviorRedIso <- ctry.scales %>%
+      behaviorRedIso <- reactive_ctry.scales() %>%
         dplyr::select(coded_country, 
                       n,
                       isoPers,
@@ -1036,7 +1110,7 @@ server <- function(input, output, session) {
       
     } else {
       
-      behaviorRed <- ctry.scales %>%
+      behaviorRed <- reactive_ctry.scales() %>%
         dplyr::select(coded_country, 
                       n,
                       mean = one_of(input$BehVars),
@@ -1143,9 +1217,9 @@ server <- function(input, output, session) {
   
   output$cor <- renderHighchart({
     # for testing:
-    # input = list(CorX = "gov", CorY = "comPunish", cor_country_selection = ctry.only.red$coded_country)
+    # input = list(CorX = "covidHope", CorY = "covidEff")
     
-    cor.dat <- ctry.scales %>%
+    cor.dat <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, n,
                     xvar = one_of(input$CorX),
                     yvar = one_of(input$CorY)) %>%
@@ -1165,35 +1239,6 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
-      
-      title.txt <- list(gov = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus?",
-                        comRule = "To what extent is your commmunity developing strict rules in response to the Coronavirus?", 
-                        comPunish = "To what extent is your commmunity punishing people who deviate from the rules that have been put in place in response to the Coronavirus?", 
-                        comOrg = "To what extent is your commmunity well organized in responding to the Coronavirus?",
-                        covidHope = "I have high hopes that the situation regarding coronavirus will improve.", 
-                        covidEff = "I think that this country is able to fight the Coronavirus.",
-                        lone = "Mean Loneliness Scores",
-                        para = "Mean State Paranoia Scores",
-                        consp = "Mean Conspiracy Scores",
-                        behWash = "To minimize my chances of getting corona virus I wash my hands more often.", 
-                        behAvoid = "To minimize my chances of getting corona virus I avoid crowded spaces.",
-                        isoPers = "Number of days per week with <b>in-person</b> contacts", 
-                        isoOnl = "Number of days per week with <b>online</b> contacts",
-                        affAnx = "Anxious", 
-                        affBor = "Bored", 
-                        affCalm = "Calm", 
-                        affContent = "Content", 
-                        affDepr = "Depressed", 
-                        affEnerg = "Energetic", 
-                        affExc = "Excited", 
-                        affNerv = "Nervous", 
-                        affExh = "Exhausted", 
-                        affInsp = "Inspired", 
-                        affRel = "Relaxed",
-                        affHighPos = "High Arousal Positive", 
-                        affHighNeg = "High Arousal Negative",
-                        affLowPos = "Low Arousal Positive", 
-                        affLowNeg = "Low Arousal Negative")
       
       min <- list(gov = 1,
                  comRule = 1,
@@ -1371,16 +1416,71 @@ server <- function(input, output, session) {
     }
   })
   
-
+  
+  reactive_ctry.scales <- eventReactive(
+    input$switch_sample,
+    {
+      if(input$switch_sample == "full") {
+        select_ctry_sample <<- all_valid_ctry
+        select_ctry_psych <<- "global"
+        select_sample <<- "full"
+        
+        
+        choiceNames_sample = lapply(seq_along(ctry.only.red$coded_country), 
+                             function(i) tagList(tags$img(src = ctry.only.red$flag[i], width = 20, height = 15), 
+                                                 ctry.only.red$coded_country[i],
+                                                 paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_sample = ctry.only.red$coded_country
+        choiceNames_psych = lapply(seq_along(ctry.red$coded_country), 
+                                   function(i) tagList(tags$img(src = ctry.red$flag[i], width = 20, height = 15), 
+                                                       ctry.red$coded_country[i],
+                                                       paste0(" (n=",prettyNum(ctry.red$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_psych = ctry.red$coded_country
+        
+    }
+      else if(input$switch_sample == "representative"){
+        select_ctry_sample <<- repr_valid_ctry
+        select_ctry_psych <<- "global"
+        select_sample <<- "representative"
+        
+        choiceNames_sample = lapply(seq_along(ctry.only.red.repr$coded_country), 
+                             function(i) tagList(tags$img(src = ctry.only.red.repr$flag[i], width = 20,  height = 15), 
+                                                 ctry.only.red.repr$coded_country[i],
+                                                 paste0(" (n=",prettyNum(ctry.only.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_sample = ctry.only.red.repr$coded_country
+        choiceNames_psych = lapply(seq_along(ctry.red.repr$coded_country), 
+                                   function(i) tagList(tags$img(src = ctry.red.repr$flag[i], width = 20, height = 15), 
+                                                       ctry.red.repr$coded_country[i],
+                                                       paste0(" (n=",prettyNum(ctry.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_psych = ctry.red.repr$coded_country
+        
+      }
+      
+      updateMultiInput_2(session = session, inputId = "sample_country_selection", choiceNames = choiceNames_sample, choiceValues = choiceValues_sample, 
+                         selected = select_ctry_sample)
+      updateMultiInput_2(session = session, inputId = "psych_country_selection", choiceNames = choiceNames_psych, choiceValues = choiceValues_psych, 
+                        selected = select_ctry_psych)
+      updateMultiInput_2(session = session, inputId = "cor_country_selection", choiceNames = choiceNames_sample, choiceValues = choiceValues_sample, 
+                         selected = select_ctry_sample)
+      
+      switch(input$switch_sample,
+             "full" = ctry.scales,
+             "representative" = ctry.scales.representative,
+             ctry.scales)
+    }
+  )
+  
+  
   observeEvent(input$reset_input_ctry, {
     shinyjs::reset("country_controls")
   })
+  
   
   observeEvent(input$sample_country_all, {
     updateMultiInput(
       session = session,
       inputId = "sample_country_selection",
-      selected = ctry.only.red$coded_country
+      selected = select_ctry_sample
     )
   })
   
@@ -1396,7 +1496,7 @@ server <- function(input, output, session) {
     updateMultiInput(
       session = session,
       inputId = "cor_country_selection",
-      selected = ctry.only.red$coded_country
+      selected = select_ctry_sample
     )
   })
   
@@ -1408,11 +1508,15 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  
   shinyjs::onclick("menu",
                    shinyjs::toggle(id = "sideFooter", anim = F))
   
   shiny:::flushReact()
+
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+

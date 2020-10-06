@@ -5,7 +5,12 @@
 .Rproj
 .DS_Store
 .Icon
-/data
+.png
+.html
+/data/RMD*
+/data/rawdata*
+/data/shiny*
 /rsconnect
+/alternative versions
 ShinyAppsSetup.R
-app_boxplots.R
+Icon\r
