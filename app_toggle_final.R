@@ -147,7 +147,13 @@ ctry.red.repr <- ctry.scales.representative %>% dplyr::select(coded_country, iso
 ctry.only.red.repr <- ctry.red.repr[!ctry.red.repr$coded_country %in% c("global"),]
 # TODO: temporary: make sure that the columns of ctry.scales and ctry.scales.representative are identical
 ctry.scales <- ctry.scales[names(ctry.scales.representative)]
+ctry.scales_s <- ctry.scales_s[names(ctry.scales.representative_s)]
+# TODO: rename column names
+names(ctry.scales_s) <- sub("_Standardized", "", names(ctry.scales_s))
+names(ctry.scales.representative_s) <- sub("_Standardized", "", names(ctry.scales.representative_s))
 
+z.min <- min(ctry.scales_s %>% dplyr::select_if(., is.numeric), na.rm = T)
+z.max <- max(ctry.scales_s %>% dplyr::select_if(., is.numeric), na.rm = T)
 
 # Default
 select_ctry_sample <- all_valid_ctry
@@ -155,7 +161,7 @@ select_ctry_psych <- "global"
 select_sample <- "full"
 select_transformation <- "raw"
 
-
+# -----
 ui <- dashboardPage(
   title = "PsyCorona: Data Visualization",
   dashboardHeader(title=span( icon("fas fa-virus"), "PsyCorona Data Tool") #HTML(paste(icon("virus"), "PsyCorona Data Tool")),
@@ -689,10 +695,10 @@ ui <- dashboardPage(
     )
     )
   )
-
-
-server <- function(input, output, session) {
+# -----
   
+server <- function(input, output, session) {
+  # -----
   # observeEvent(input$dimension[1], {
   #   if (input$dimension[1] <= 767) {
   #     shinyalert(title = "Small Screen Detected", 
@@ -813,6 +819,7 @@ server <- function(input, output, session) {
   output$freqPlot <- renderHighchart({
     hcmap(download_map_data = FALSE,
           data = reactive_ctry.scales() %>% filter(coded_country %in% input$sample_country_selection),
+          #data = ctry.only.red,
           value = "n",
           joinBy = c("iso-a2", "iso_a2"), name = "sample size",
           #dataLabels = list(enabled = TRUE, format = '{point.name}'),
@@ -820,10 +827,13 @@ server <- function(input, output, session) {
           tooltip = list(valueDecimals = 0, valuePrefix = "n = "),
           margin = 0) %>% 
       hc_mapNavigation(enabled = TRUE) %>%
-      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic", endOnTick=FALSE, maxPadding=0) 
+      hc_colorAxis(minColor = "#c4e6c3", maxColor = "#1d4f60", type = "logarithmic", endOnTick=FALSE, maxPadding=0)
   })
   #Color schemes: https://carto.com/carto-colors/
   
+
+  # -----
+  # Government Response
   output$boxGov <- renderHighchart({
     # for testing:
     # input = list(psych_country_selection = c("global"))
@@ -842,8 +852,7 @@ server <- function(input, output, session) {
                       ' <br> Lower Limit: ' + Math.round((this.point.low + Number.EPSILON) * 100) / 100 + 
                       ' <br> Upper Limit: ' + Math.round((this.point.high + Number.EPSILON) * 100) / 100)
                       }")
-    
-    categories <- c("0" , "1<br>unclear", "2", "3", "4", "5", "6<br>clear")
+    categories <- c("0", "1<br>unclear", "2", "3", "4", "5", "6<br>clear")
     
     if (nrow(governmentRed) == 0) {
       highchart() %>%
@@ -861,21 +870,45 @@ server <- function(input, output, session) {
                     animation = list(duration = 1900),
                     showInLegend = FALSE) %>%
       hc_title(text = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus? [Mean and 95%CI]") %>%
-      hc_xAxis(categories = as.list(governmentRed$coded_country)) %>%
-      hc_yAxis(showFirstLabel = T,
-               showLastLabel = T,
-               min = 1,
-               max = 6,
-               #step = 1,
-               #list(formatter = JS(gov.labs)), 
-               #rotation = 0,
-               categories = categories,
-               #align = "center",
-               tickmarkPlacement = seq(1,6,1)) %>%
-      hc_tooltip(formatter = JS(tooltipJS))
+      hc_xAxis(categories = as.list(governmentRed$coded_country)) %>% 
+      hc_tooltip(formatter = JS(tooltipJS)) -> out
+      
+      if (select_transformation == "raw") {
+        # categories <- c("0" , "1<br>unclear", "2", "3", "4", "5", "6<br>clear")
+        out %>% 
+          hc_yAxis(showFirstLabel = T,
+                   showLastLabel = T,
+                   min = 1,
+                   max = 6,
+                   #step = 1,
+                   #list(formatter = JS(gov.labs)), 
+                   #rotation = 0,
+                   categories = categories,
+                   #align = "center",
+                   tickmarkPlacement = seq(1,6,1))
+      }
+      else {
+        #categoriesS <- c("-3", "-2", "-1", "0", "1", "2", "3")
+        out %>% hc_yAxis(showFirstLabel = T,
+                         showLastLabel = T,
+                         min = -3,
+                         max = 3,
+                         categories =seq(-3,-3,1),
+                         step = 1,
+                         #round=F,
+                         #list(formatter = JS(gov.labs)), 
+                         #rotation = 0,
+                         #align = "center",
+                         tickmarkPlacement = seq(-3,-3,1)
+        )
+      }
+      
     }
   })
   
+  
+  # -----
+  # Community Response
   output$boxCom <- renderHighchart({
     # for testing:
     # input = list(ComVars = "comRule", psych_country_selection = c("Germany", "France"))
@@ -902,7 +935,7 @@ server <- function(input, output, session) {
                       comPunish = "To what extent is your commmunity punishing people who deviate from the rules that have been put in place in response to the Coronavirus? [Mean and 95%CI]", 
                       comOrg = "To what extent is your commmunity well organized in responding to the Coronavirus? [Mean and 95%CI]")
     
-    categories <- c("0" , "1<br>not at all", "2", "3", "4", "5", "6<br>very much")
+    categories <- c("0", "1<br>not at all", "2", "3", "4", "5", "6<br>very much")
     
     if (nrow(communityRed) == 0) {
       highchart() %>%
@@ -921,20 +954,42 @@ server <- function(input, output, session) {
                     showInLegend = FALSE) %>%
       hc_title(text = title.txt[[input$ComVars]]) %>% 
       hc_xAxis(categories = as.list(communityRed$coded_country)) %>%
-      hc_yAxis(showFirstLabel = T,
-               showLastLabel = T,
-               min = 1,
-               max = 6,
-               #step = 1,
-               #list(formatter = JS(gov.labs)), 
-               #rotation = 0,
-               categories = categories,
-               #align = "center",
-               tickmarkPlacement = seq(1,6,1)) %>%
-      hc_tooltip(formatter = JS(tooltipJS))
+      hc_tooltip(formatter = JS(tooltipJS)) -> out
+      
+      if (select_transformation == "raw") {
+        out %>% hc_yAxis(showFirstLabel = T,
+                         showLastLabel = T,
+                         min = 1,
+                         max = 6,
+                         #step = 1,
+                         #list(formatter = JS(gov.labs)), 
+                         #rotation = 0,
+                         categories = categories,
+                         #align = "center",
+                         tickmarkPlacement = seq(1,6,1))
+          
+      }
+      else {
+        # categories <- c("-2", "-1<br>unclear", "0", "1<br>clear")
+        out %>% hc_yAxis(showFirstLabel = T,
+                         showLastLabel = T,
+                         min = -3,
+                         max = 3,
+                         step = 1,
+                         #list(formatter = JS(gov.labs)), 
+                         #rotation = 0,
+                         categories = seq(-3,-3,1),
+                         #align = "center",
+                         tickmarkPlacement = seq(-3,-3,1)
+        )
+      }
+      
     }
   })
   
+  
+  # -----
+  # Cognitive Response
   output$boxCog <- renderHighchart({
     # for testing:
     # input = list(CogVars = "covidHope", cog_country_selection = c("Germany", "France"))
@@ -962,32 +1017,61 @@ server <- function(input, output, session) {
                       lone = "Mean Loneliness Scores [Mean and 95%CI]",
                       para = "Mean State Paranoia Scores [Mean and 95%CI]",
                       consp = "Mean Conspiracy Scores [Mean and 95%CI]")
-    y.min <- list(covidHope = -3, 
-                  covidEff = -3,
-                  lone = 1,
-                  para = 0,
-                  consp = 0)
-    y.max <- list(covidHope = 3, 
-                  covidEff = 3,
-                  lone = 5,
-                  para = 10,
-                  consp = 10)
-    lab.ticks <- list(covidHope = c("0"), 
-                      covidEff = c("0"), 
-                      lone = c("0"),
-                      para = c("0"),
-                      consp = c("0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"))
-    lab.breaks <- list(covidHope = seq(0,7,1), 
-                       covidEff = seq(0,7,1), 
-                       lone = seq(1,5,1),
-                       para = seq(0,10,1),
-                       consp = seq(0,10,1))
     
-    lab.ends <- list(covidHope = c("-3<br>disagree", "3<br>agree"), 
-                     covidEff = c("-3<br>disagree", "3<br>agree"), 
-                     lone = c("1<br>Never", "5<br>All the time"),
-                     para = c("0<br>Not at all", "10<br>Very much"),
-                     consp = c("0%", "100%"))
+    if (select_transformation == "raw"){
+      y.min = list(covidHope = -3, 
+                   covidEff = -3,
+                   lone = 1,
+                   para = 0,
+                   consp = 0)
+      y.max <- list(covidHope = 3, 
+                    covidEff = 3,
+                    lone = 5,
+                    para = 10,
+                    consp = 10)
+      lab.ticks <- list(covidHope = c("0"), 
+                        covidEff = c("0"), 
+                        lone = c("0"),
+                        para = c("0"),
+                        consp = c("0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"))
+      lab.breaks <- list(covidHope = seq(0,7,1), 
+                         covidEff = seq(0,7,1), 
+                         lone = seq(1,5,1),
+                         para = seq(0,10,1),
+                         consp = seq(0,10,1))
+      lab.ends <- list(covidHope = c("-3<br>disagree", "3<br>agree"), 
+                       covidEff = c("-3<br>disagree", "3<br>agree"), 
+                       lone = c("1<br>Never", "5<br>All the time"),
+                       para = c("0<br>Not at all", "10<br>Very much"),
+                       consp = c("0%", "100%"))}
+    else if (select_transformation == "standardized"){
+      y.min = list(covidHope = -3, 
+                   covidEff = -3,
+                   lone = -3,
+                   para = -3,
+                   consp = -3)
+      y.max <- list(covidHope = 3, 
+                    covidEff = 3,
+                    lone = 3,
+                    para = 3,
+                    consp = 3)
+      lab.ticks <- list(covidHope = c("0"), 
+                        covidEff = c("0"), 
+                        lone = c("0"),
+                        para = c("0"),
+                        consp = c("0"))
+      lab.breaks <- list(covidHope = seq(-3,3,1), 
+                         covidEff = seq(-3,3,1), 
+                         lone = seq(-3,3,1),
+                         para = seq(-3,3,1),
+                         consp = seq(-3,3,1))
+      lab.ends = list(covidHope = c("-3", "3"), 
+                      covidEff = c("-3", "3"), 
+                      lone = c("-3", "3"),
+                      para = c("-3", "3"),
+                      consp = c("-3", "3"))}
+    
+    
     lab.ends.js <- paste0("function(){console.log(this);
                                         if(this.isFirst){
                                         return '",
@@ -998,6 +1082,7 @@ server <- function(input, output, session) {
                                         return this.value
                                         }
                                         }")
+    
     if (nrow(cognitiveRed) == 0) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
@@ -1030,6 +1115,9 @@ server <- function(input, output, session) {
     }
   })
   
+  
+  # -----
+  # Behavioral Response
   output$boxBeh <- renderUI({
     # for testing:
     # input = list(BehVars = "avoid", beh_country_selection = c("Germany", "France"))
@@ -1081,11 +1169,27 @@ server <- function(input, output, session) {
                       showInLegend = FALSE) %>%
         hc_title(text = "Number of days per week with <b>in-person</b> contacts") %>%
         hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
-        hc_yAxis(min = 0,
-                 max = 7,
-                 categories = seq(0,7,1),
-                 tickmarkPlacement = seq(0,7,1)) %>%
         hc_tooltip(formatter = JS(tooltipJSPers))
+
+      
+      if (select_transformation == "raw") {
+        hcPers <- hcPers %>% hc_yAxis(min = 0,
+                         max = 7,
+                         categories = seq(0,7,1),
+                         tickmarkPlacement = seq(0,7,1))
+          
+      }
+      else {
+        hcPers <- hcPers %>% hc_yAxis(min = -3,
+                                      max = 3,
+                                      step = 1,
+                                      #list(formatter = JS(gov.labs)), 
+                                      #rotation = 0,
+                                      categories = seq(-3,-3,1),
+                                      #align = "center",
+                                      tickmarkPlacement = seq(-3,-3,1))
+      }
+      
       
       hcOnli <- highchart() %>% 
         hc_chart(type = "bar") %>% 
@@ -1100,14 +1204,30 @@ server <- function(input, output, session) {
                       showInLegend = FALSE) %>%
         hc_title(text = "Number of days per week with <b>online</b> contacts") %>%
         hc_xAxis(categories = as.list(behaviorRedIso$coded_country)) %>%
-        hc_yAxis(min = 0,
-                 max = 7,
-                 categories = seq(0,7,1),
-                 tickmarkPlacement = seq(0,7,1)) %>%
         hc_tooltip(formatter = JS(tooltipJSOnl))
-      lst <- list(hcPers, hcOnli)  
       
+      
+      if (select_transformation == "raw") {
+        hcOnli <- hcOnli %>% hc_yAxis(min = 0,
+                                      max = 7,
+                                      categories = seq(0,7,1),
+                                      tickmarkPlacement = seq(0,7,1))
+          
+      }
+      else {
+        hcOnli <- hcOnli %>% hc_yAxis(min = -3,
+                                      max = 3,
+                                      step = 1,
+                                      #list(formatter = JS(gov.labs)), 
+                                      #rotation = 0,
+                                      categories = seq(-3,-3,1),
+                                      #align = "center",
+                                      tickmarkPlacement = seq(-3,-3,1))
+          
+      }
+      lst <- list(hcPers, hcOnli)
       hw_grid(lst, ncol = 2, rowheight = "400")
+      
       }
       
     } else {
@@ -1136,7 +1256,7 @@ server <- function(input, output, session) {
       
       y.min <- list(behWash = -3, 
                     behAvoid = -3)
-      y.max <- list(wash = 3, 
+      y.max <- list(behWash = 3, 
                     behAvoid = 3)
       
       lab.ends <- list(behWash = c("-3<br>disagree", "3<br>agree"), 
@@ -1170,21 +1290,39 @@ server <- function(input, output, session) {
                       showInLegend = FALSE) %>%
         hc_title(text = title.txt[[input$BehVars]]) %>% 
         hc_xAxis(categories = as.list(behaviorRed$coded_country)) %>%
-        hc_yAxis(showFirstLabel = T,
-                 showLastLabel = T,
-                 min = y.min[[input$BehVars]],
-                 max = y.max[[input$BehVars]],
-                 tickInterval = 1,
-                 labels = list(formatter = JS(lab.ends.js)), 
-                 categories = c("0"),
-                 tickmarkPlacement = seq(0,7,1)) %>%
-        hc_tooltip(formatter = JS(tooltipJS)) %>%
-        hw_grid(ncol = 1, rowheight = "400")
+        hc_tooltip(formatter = JS(tooltipJS)) -> out
+        
+        if (select_transformation == "raw") {
+          out %>% hc_yAxis(showFirstLabel = T,
+                           showLastLabel = T,
+                           min = y.min[[input$BehVars]],
+                           max = y.max[[input$BehVars]],
+                           tickInterval = 1,
+                           labels = list(formatter = JS(lab.ends.js)), 
+                           categories = c("0"),
+                           tickmarkPlacement = seq(0,7,1)) %>% 
+            hw_grid(ncol = 1, rowheight = "400")
+        }
+        else {
+          out %>% hc_yAxis(showFirstLabel = T,
+                           showLastLabel = T,
+                           min = y.min[[input$BehVars]],
+                           max = y.max[[input$BehVars]],
+                           #tickInterval = 1,
+                           steps = 1,
+                           categories = c("0"),
+                           tickmarkPlacement = seq(-3,3,by=1)) %>% 
+            hw_grid(ncol = 1, rowheight = "400")
+        }
+
+        
       }
     }
   })
   
   
+  # -----
+  # Emotional Response
   output$affect <- renderChartJSRadar({
     # for testing:
     # input = list(categorySwitch = TRUE, sample_country_affect = c("global", "Germany"))
@@ -1213,20 +1351,29 @@ server <- function(input, output, session) {
                         )
     )
     names(radar) <- c("label", input$psych_country_selection)
-    chartJSRadar(radar, maxScale = 5, showToolTipLabel=TRUE, showLegend = T, responsive = T, 
-                 labelSize = 12) 
+    
+    if (select_transformation == "raw") {
+      chartJSRadar(radar, maxScale = 5, showToolTipLabel=TRUE, showLegend = T, responsive = T, 
+                   labelSize = 12) 
+    }
+    else {
+      chartJSRadar(radar, maxScale = 3, showToolTipLabel=TRUE, showLegend = T, responsive = T, 
+                   labelSize = 12, scaleStartValue = -3)
+    }
   })
   
+  
+  # -----
+  # Cross Domain Relationships
   output$cor <- renderHighchart({
     # for testing:
-    # input = list(CorX = "covidHope", CorY = "covidEff")
+    # input = list(CorX = "comRule", CorY = "covidHope")
     
     cor.dat <- reactive_ctry.scales() %>%
       dplyr::select(coded_country, n,
                     xvar = one_of(input$CorX),
                     yvar = one_of(input$CorY)) %>%
-      filter(coded_country != "global",
-             coded_country %in% input$cor_country_selection)
+      filter(coded_country != "global")
     
     varLab <- c("gov"="Clear Government Information",
                 "comRule"="Community Rules", "comPunish"="Community Punishment", "comOrg"="Community Organization",
@@ -1241,6 +1388,239 @@ server <- function(input, output, session) {
       highchart() %>%
         hc_title(text = "Select Countries to Display")
     } else {
+      
+      
+      if (select_transformation == "raw") {
+        min <- list(gov = 1,
+                   comRule = 1,
+                   comPunish = 1,
+                   comOrg = 1,
+                   covidHope = -3,
+                   covidEff = -3,
+                   lone = 1,
+                   para = 0,
+                   consp = 0,
+                   behWash = -3,
+                   behAvoid = -3,
+                   isoPers = 0,
+                   isoOnl = 0,
+                   affAnx = 1,
+                   affBor = 1,
+                   affCalm = 1,
+                   affContent = 1,
+                   affDepr = 1,
+                   affEnerg = 1,
+                   affExc = 1,
+                   affNerv = 1,
+                   affExh = 1,
+                   affInsp = 1,
+                   affRel = 1,
+                   affHighPos = 1,
+                   affHighNeg = 1,
+                   affLowPos = 1,
+                   affLowNeg = 1)
+        
+        max <- list(gov = 6,
+                    comRule = 6,
+                    comPunish = 6,
+                    comOrg = 6,
+                    covidHope = 3,
+                    covidEff = 3,
+                    lone = 5,
+                    para = 10,
+                    consp = 10,
+                    behWash = 3,
+                    behAvoid = 3,
+                    isoPers = 7,
+                    isoOnl = 7,
+                    affAnx = 5,
+                    affBor = 5,
+                    affCalm = 5,
+                    affContent = 5,
+                    affDepr = 5,
+                    affEnerg = 5, 
+                    affExc = 5, 
+                    affNerv = 5, 
+                    affExh = 5, 
+                    affInsp = 5, 
+                    affRel = 5,
+                    affHighPos = 5, 
+                    affHighNeg = 5,
+                    affLowPos = 5, 
+                    affLowNeg = 5)
+        lab.x.ends <- list(gov = c("1<br>unclear", "6<br>clear"), 
+                         comRule = c("1<br>not at all", "6<br>very much"),
+                         comPunish = c("1<br>not at all", "6<br>very much"),
+                         comOrg = c("1<br>not at all", "6<br>very much"),
+                         covidHope = c("-3<br>disagree", "3<br>agree"), 
+                         covidEff = c("-3<br>disagree", "3<br>agree"), 
+                         lone = c("1<br>Never", "5<br>All the time"),
+                         para = c("0<br>Not at all", "10<br>Very much"),
+                         consp = c("0%", "100%"),
+                         behWash = c("-3<br>disagree", "3<br>agree"), 
+                         behAvoid = c("-3<br>disagree", "3<br>agree"),
+                         isoPers = c(1,7),
+                         isoOnl = c(1,7),
+                         affAnx = c("1<br>not at all", "5<br>very much"),
+                         affBor = c("1<br>not at all", "5<br>very much"),
+                         affCalm = c("1<br>not at all", "5<br>very much"),
+                         affContent = c("1<br>not at all", "5<br>very much"),
+                         affDepr = c("1<br>not at all", "5<br>very much"),
+                         affEnerg = c("1<br>not at all", "5<br>very much"),
+                         affExc = c("1<br>not at all", "5<br>very much"),
+                         affNerv = c("1<br>not at all", "5<br>very much"),
+                         affExh = c("1<br>not at all", "5<br>very much"),
+                         affInsp = c("1<br>not at all", "5<br>very much"),
+                         affRel = c("1<br>not at all", "5<br>very much"),
+                         affHighPos = c("1<br>not at all", "5<br>very much"),
+                         affHighNeg = c("1<br>not at all", "5<br>very much"),
+                         affLowPos = c("1<br>not at all", "5<br>very much"),
+                         affLowNeg = c("1<br>not at all", "5<br>very much"))
+        lab.y.ends <- list(gov = c("unclear 1", "clear 6"), 
+                           comRule = c("not at all 1", "very much 6"),
+                           comPunish = c("not at all 1", "very much 6"),
+                           comOrg = c("not at all 1", "very much 6"),
+                           covidHope = c("disagree -3", "agree 3"), 
+                           covidEff = c("disagree -3", "agree 3"), 
+                           lone = c("Never 1", "All the time 5"),
+                           para = c("Not at all 0", "Very much 10"),
+                           consp = c("0%", "100%"),
+                           behWash = c("disagree -3", "agree 3"), 
+                           behAvoid = c("disagree -3", "agree 3"), 
+                           isoPers = c(1,7),
+                           isoOnl = c(1,7),
+                           affAnx = c("not at all 1", "very much 5"),
+                           affBor = c("not at all 1", "very much 5"),
+                           affCalm = c("not at all 1", "very much 5"),
+                           affContent = c("not at all 1", "very much 5"),
+                           affDepr = c("not at all 1", "very much 5"),
+                           affEnerg = c("not at all 1", "very much 5"),
+                           affExc = c("not at all 1", "very much 5"),
+                           affNerv = c("not at all 1", "very much 5"),
+                           affExh = c("not at all 1", "very much 5"),
+                           affInsp = c("not at all 1", "very much 5"),
+                           affRel = c("not at all 1", "very much 5"),
+                           affHighPos = c("not at all 1", "very much 5"),
+                           affHighNeg = c("not at all 1", "very much 5"),
+                           affLowPos = c("not at all 1", "very much 5"),
+                           affLowNeg = c("not at all 1", "very much 5"))
+      }
+      else {
+        min <- list(gov = -2,
+                    comRule = -2,
+                    comPunish = -2,
+                    comOrg = -2,
+                    covidHope = -2,
+                    covidEff = -2,
+                    lone = -2,
+                    para = -2,
+                    consp = -2,
+                    behWash = -2,
+                    behAvoid = -2,
+                    isoPers = -2,
+                    isoOnl = -2,
+                    affAnx = -2,
+                    affBor = -2,
+                    affCalm = -2,
+                    affContent = -2,
+                    affDepr = -2,
+                    affEnerg = -2,
+                    affExc = -2,
+                    affNerv = -2,
+                    affExh = -2,
+                    affInsp = -2,
+                    affRel = -2,
+                    affHighPos = -2,
+                    affHighNeg = -2,
+                    affLowPos = -2,
+                    affLowNeg = -2)
+        
+        max <- list(gov = 2,
+                    comRule = 2,
+                    comPunish = 2,
+                    comOrg = 2,
+                    covidHope = 2,
+                    covidEff = 2,
+                    lone = 2,
+                    para = 2,
+                    consp = 2,
+                    behWash = 2,
+                    behAvoid = 2,
+                    isoPers = 2,
+                    isoOnl = 2,
+                    affAnx = 2,
+                    affBor = 2,
+                    affCalm = 2,
+                    affContent = 2,
+                    affDepr = 2,
+                    affEnerg = 2, 
+                    affExc = 2, 
+                    affNerv = 2, 
+                    affExh = 2, 
+                    affInsp = 2, 
+                    affRel = 2,
+                    affHighPos = 2, 
+                    affHighNeg = 2,
+                    affLowPos = 2, 
+                    affLowNeg = 2)
+        lab.x.ends <- list(gov = c("-2", "2"), 
+                           comRule = c("-2", "2"),
+                           comPunish = c("-2", "2"),
+                           comOrg = c("-2", "2"),
+                           covidHope = c("-2", "2"), 
+                           covidEff = c("-2", "2"), 
+                           lone = c("-2", "2"),
+                           para = c("-2", "2"),
+                           consp = c("-2", "2"),
+                           behWash = c("-2", "2"), 
+                           behAvoid = c("-2", "2"),
+                           isoPers = c("-2", "2"),
+                           isoOnl = c("-2", "2"),
+                           affAnx = c("-2", "2"),
+                           affBor = c("-2", "2"),
+                           affCalm = c("-2", "2"),
+                           affContent = c("-2", "2"),
+                           affDepr = c("-2", "2"),
+                           affEnerg = c("-2", "2"),
+                           affExc = c("-2", "2"),
+                           affNerv = c("-2", "2"),
+                           affExh = c("-2", "2"),
+                           affInsp = c("-2", "2"),
+                           affRel = c("-2", "2"),
+                           affHighPos = c("-2", "2"),
+                           affHighNeg = c("-2", "2"),
+                           affLowPos = c("-2", "2"),
+                           affLowNeg = c("-2", "2"))
+        lab.y.ends <- list(gov = c("-2", "2"), 
+                           comRule = c("-2", "2"),
+                           comPunish = c("-2", "2"),
+                           comOrg = c("-2", "2"),
+                           covidHope = c("-2", "2"), 
+                           covidEff = c("-2", "2"), 
+                           lone = c("-2", "2"),
+                           para = c("-2", "2"),
+                           consp = c("-2", "2"),
+                           behWash = c("-2", "2"), 
+                           behAvoid = c("-2", "2"), 
+                           isoPers = c("-2", "2"),
+                           isoOnl = c("-2", "2"),
+                           affAnx = c("-2", "2"),
+                           affBor = c("-2", "2"),
+                           affCalm = c("-2", "2"),
+                           affContent = c("-2", "2"),
+                           affDepr = c("-2", "2"),
+                           affEnerg = c("-2", "2"),
+                           affExc = c("-2", "2"),
+                           affNerv = c("-2", "2"),
+                           affExh = c("-2", "2"),
+                           affInsp = c("-2", "2"),
+                           affRel = c("-2", "2"),
+                           affHighPos = c("-2", "2"),
+                           affHighNeg = c("-2", "2"),
+                           affLowPos = c("-2", "2"),
+                           affLowNeg = c("-2", "2"))
+      }
+      
       
       title.txt <- list(gov = "To what extent are you getting clear, unambiguous messages about what to do about the Coronavirus?",
                         comRule = "To what extent is your commmunity developing strict rules in response to the Coronavirus?", 
@@ -1270,120 +1650,6 @@ server <- function(input, output, session) {
                         affHighNeg = "High Arousal Negative",
                         affLowPos = "Low Arousal Positive", 
                         affLowNeg = "Low Arousal Negative")
-      
-      min <- list(gov = 1,
-                 comRule = 1,
-                 comPunish = 1,
-                 comOrg = 1,
-                 covidHope = -3,
-                 covidEff = -3,
-                 lone = 1,
-                 para = 0,
-                 consp = 0,
-                 behWash = -3,
-                 behAvoid = -3,
-                 isoPers = 0,
-                 isoOnl = 0,
-                 affAnx = 1,
-                 affBor = 1,
-                 affCalm = 1,
-                 affContent = 1,
-                 affDepr = 1,
-                 affEnerg = 1,
-                 affExc = 1,
-                 affNerv = 1,
-                 affExh = 1,
-                 affInsp = 1,
-                 affRel = 1,
-                 affHighPos = 1,
-                 affHighNeg = 1,
-                 affLowPos = 1,
-                 affLowNeg = 1)
-      
-      max <- list(gov = 6,
-                  comRule = 6,
-                  comPunish = 6,
-                  comOrg = 6,
-                  covidHope = 3,
-                  covidEff = 3,
-                  lone = 5,
-                  para = 10,
-                  consp = 10,
-                  behWash = 3,
-                  behAvoid = 3,
-                  isoPers = 7,
-                  isoOnl = 7,
-                  affAnx = 5,
-                  affBor = 5,
-                  affCalm = 5,
-                  affContent = 5,
-                  affDepr = 5,
-                  affEnerg = 5, 
-                  affExc = 5, 
-                  affNerv = 5, 
-                  affExh = 5, 
-                  affInsp = 5, 
-                  affRel = 5,
-                  affHighPos = 5, 
-                  affHighNeg = 5,
-                  affLowPos = 5, 
-                  affLowNeg = 5)
-      lab.x.ends <- list(gov = c("1<br>unclear", "6<br>clear"), 
-                       comRule = c("1<br>not at all", "6<br>very much"),
-                       comPunish = c("1<br>not at all", "6<br>very much"),
-                       comOrg = c("1<br>not at all", "6<br>very much"),
-                       covidHope = c("-3<br>disagree", "3<br>agree"), 
-                       covidEff = c("-3<br>disagree", "3<br>agree"), 
-                       lone = c("1<br>Never", "5<br>All the time"),
-                       para = c("0<br>Not at all", "10<br>Very much"),
-                       consp = c("0%", "100%"),
-                       behWash = c("-3<br>disagree", "3<br>agree"), 
-                       behAvoid = c("-3<br>disagree", "3<br>agree"),
-                       isoPers = c(1,7),
-                       isoOnl = c(1,7),
-                       affAnx = c("1<br>not at all", "5<br>very much"),
-                       affBor = c("1<br>not at all", "5<br>very much"),
-                       affCalm = c("1<br>not at all", "5<br>very much"),
-                       affContent = c("1<br>not at all", "5<br>very much"),
-                       affDepr = c("1<br>not at all", "5<br>very much"),
-                       affEnerg = c("1<br>not at all", "5<br>very much"),
-                       affExc = c("1<br>not at all", "5<br>very much"),
-                       affNerv = c("1<br>not at all", "5<br>very much"),
-                       affExh = c("1<br>not at all", "5<br>very much"),
-                       affInsp = c("1<br>not at all", "5<br>very much"),
-                       affRel = c("1<br>not at all", "5<br>very much"),
-                       affHighPos = c("1<br>not at all", "5<br>very much"),
-                       affHighNeg = c("1<br>not at all", "5<br>very much"),
-                       affLowPos = c("1<br>not at all", "5<br>very much"),
-                       affLowNeg = c("1<br>not at all", "5<br>very much"))
-      lab.y.ends <- list(gov = c("unclear 1", "clear 6"), 
-                         comRule = c("not at all 1", "very much 6"),
-                         comPunish = c("not at all 1", "very much 6"),
-                         comOrg = c("not at all 1", "very much 6"),
-                         covidHope = c("disagree -3", "agree 3"), 
-                         covidEff = c("disagree -3", "agree 3"), 
-                         lone = c("Never 1", "All the time 5"),
-                         para = c("Not at all 0", "Very much 10"),
-                         consp = c("0%", "100%"),
-                         behWash = c("disagree -3", "agree 3"), 
-                         behAvoid = c("disagree -3", "agree 3"), 
-                         isoPers = c(1,7),
-                         isoOnl = c(1,7),
-                         affAnx = c("not at all 1", "very much 5"),
-                         affBor = c("not at all 1", "very much 5"),
-                         affCalm = c("not at all 1", "very much 5"),
-                         affContent = c("not at all 1", "very much 5"),
-                         affDepr = c("not at all 1", "very much 5"),
-                         affEnerg = c("not at all 1", "very much 5"),
-                         affExc = c("not at all 1", "very much 5"),
-                         affNerv = c("not at all 1", "very much 5"),
-                         affExh = c("not at all 1", "very much 5"),
-                         affInsp = c("not at all 1", "very much 5"),
-                         affRel = c("not at all 1", "very much 5"),
-                         affHighPos = c("not at all 1", "very much 5"),
-                         affHighNeg = c("not at all 1", "very much 5"),
-                         affLowPos = c("not at all 1", "very much 5"),
-                         affLowNeg = c("not at all 1", "very much 5"))
       
       # lab.ticks <- list(covidHope = c("0"), 
       #                   covidEff = c("0"), 
@@ -1443,24 +1709,33 @@ server <- function(input, output, session) {
                  max = max[[input$CorY]],
                  tickInterval = 1,
                  labels = list(formatter = JS(lab.ends.y.js))) %>%
-        hc_tooltip(formatter = JS(tooltipJS))
+        hc_tooltip(formatter = JS(tooltipJS)) # %>%
+        # hc_exporting(
+        #   enabled = TRUE, # always enabled
+        #   width = '1200',
+        #   filename = "Correlation01"
+        # )
     }
   })
-  
-  
+
+  # -----
   reactive_ctry.scales <- eventReactive(
-    input$switch_sample,
+    c(input$switch_sample, input$switch_transformation),
     {
-      if(input$switch_sample == "full") {
+      # 1 & 2
+      if( ((input$switch_sample == "full") && (is.null(input$switch_transformation))) || 
+          ((input$switch_sample == "full") && (input$switch_transformation == "raw")) ){
+        print("RUNNING FULL OR FULL+RAW")
         select_ctry_sample <<- all_valid_ctry
         select_ctry_psych <<- input$psych_country_selection
         select_sample <<- "full"
+        select_transformation <<- "raw"
         
         
         choiceNames_sample = lapply(seq_along(ctry.only.red$coded_country), 
-                             function(i) tagList(tags$img(src = ctry.only.red$flag[i], width = 20, height = 15), 
-                                                 ctry.only.red$coded_country[i],
-                                                 paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")")))
+                                    function(i) tagList(tags$img(src = ctry.only.red$flag[i], width = 20, height = 15), 
+                                                        ctry.only.red$coded_country[i],
+                                                        paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")")))
         choiceValues_sample = ctry.only.red$coded_country
         
         choiceNames_psych = lapply(seq_along(ctry.red$coded_country), 
@@ -1469,18 +1744,85 @@ server <- function(input, output, session) {
                                                        paste0(" (n=",prettyNum(ctry.red$n[i], big.mark=",", scientific=FALSE),")")))
         choiceValues_psych = ctry.red$coded_country
         
-    }
-      else if(input$switch_sample == "representative"){
+        df <- ctry.scales
+        
+      }
+      
+      
+      # 3 & 4
+      else if( ((input$switch_sample == "representative") && (is.null(input$switch_transformation))) ||
+               ((input$switch_sample == "representative") && (input$switch_transformation == "raw")) ){
+        print("RUNNING REPRESENTATIVE OR REPRESENTATIVE+RAW")
         select_ctry_sample <<- sort(unique(append(repr_valid_ctry, input$psych_country_selection))) 
         select_ctry_psych <<- input$psych_country_selection
         select_sample <<- "representative"
+        select_transformation <<- "raw" 
+        
         
         ctry.red.repr_with_selection = ctry.red[(ctry.red$coded_country %in% ctry.red.repr$coded_country) | (ctry.red$coded_country %in% input$psych_country_selection),]
         
         choiceNames_sample = lapply(seq_along(ctry.only.red.repr$coded_country), 
-                             function(i) tagList(tags$img(src = ctry.only.red.repr$flag[i], width = 20,  height = 15), 
-                                                 ctry.only.red.repr$coded_country[i],
-                                                 paste0(" (n=",prettyNum(ctry.only.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+                                    function(i) tagList(tags$img(src = ctry.only.red.repr$flag[i], width = 20,  height = 15), 
+                                                        ctry.only.red.repr$coded_country[i],
+                                                        paste0(" (n=",prettyNum(ctry.only.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_sample = ctry.only.red.repr$coded_country
+        
+        choiceNames_psych = lapply(seq_along(ctry.red.repr$coded_country), 
+                                   function(i) tagList(tags$img(src = ctry.red.repr$flag[i], width = 20, height = 15), 
+                                                       ctry.red.repr$coded_country[i],
+                                                       paste0(" (n=",prettyNum(ctry.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_psych = ctry.red.repr$coded_country
+        
+        
+        
+        # df <- rbind(ctry.scales.representative[ctry.scales.representative$coded_country %in% c("global"),], 
+        #             ctry.scales[(ctry.scales$coded_country %in% ctry.scales.representative$coded_country[!ctry.scales.representative$coded_country %in% c("global")]) |
+        #                           (ctry.scales$coded_country %in% select_ctry_psych[!select_ctry_psych %in% c("global")]),]
+        #             )
+        df <- ctry.scales.representative
+      }
+
+      
+      # 5
+      else if( (input$switch_sample == "full") && (input$switch_transformation == "standardized")) {
+        print("RUNNING FULL+ STANDARDIZED")
+        select_ctry_sample <<- all_valid_ctry
+        select_ctry_psych <<- input$psych_country_selection
+        select_sample <<- "full"
+        select_transformation <<- "standardized"
+        
+        
+        choiceNames_sample = lapply(seq_along(ctry.only.red$coded_country), 
+                                    function(i) tagList(tags$img(src = ctry.only.red$flag[i], width = 20, height = 15), 
+                                                        ctry.only.red$coded_country[i],
+                                                        paste0(" (n=",prettyNum(ctry.only.red$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_sample = ctry.only.red$coded_country
+        
+        choiceNames_psych = lapply(seq_along(ctry.red$coded_country), 
+                                   function(i) tagList(tags$img(src = ctry.red$flag[i], width = 20, height = 15), 
+                                                       ctry.red$coded_country[i],
+                                                       paste0(" (n=",prettyNum(ctry.red$n[i], big.mark=",", scientific=FALSE),")")))
+        choiceValues_psych = ctry.red$coded_country
+        
+        df <- ctry.scales_s
+      }
+      
+      
+      # 6
+      else if( (input$switch_sample == "representative") && (input$switch_transformation == "standardized") ){
+        print("RUNNING REPRESENTATIVE + STANDARDIZED")
+        select_ctry_sample <<- sort(unique(append(repr_valid_ctry, input$psych_country_selection))) 
+        select_ctry_psych <<- input$psych_country_selection
+        select_sample <<- "representative"
+        select_transformation <<- "standardized"
+        
+        
+        ctry.red.repr_with_selection = ctry.red[(ctry.red$coded_country %in% ctry.red.repr$coded_country) | (ctry.red$coded_country %in% input$psych_country_selection),]
+        
+        choiceNames_sample = lapply(seq_along(ctry.only.red.repr$coded_country), 
+                                    function(i) tagList(tags$img(src = ctry.only.red.repr$flag[i], width = 20,  height = 15), 
+                                                        ctry.only.red.repr$coded_country[i],
+                                                        paste0(" (n=",prettyNum(ctry.only.red.repr$n[i], big.mark=",", scientific=FALSE),")")))
         choiceValues_sample = ctry.only.red.repr$coded_country
         
         choiceNames_psych = lapply(seq_along(ctry.red.repr_with_selection$coded_country), 
@@ -1488,23 +1830,25 @@ server <- function(input, output, session) {
                                                        ctry.red.repr_with_selection$coded_country[i],
                                                        paste0(" (n=",prettyNum(ctry.red.repr_with_selection$n[i], big.mark=",", scientific=FALSE),")")))
         choiceValues_psych = ctry.red.repr_with_selection$coded_country
+        
+        
+        # df <- rbind(ctry.scales.representative_s[ctry.scales.representative_s$coded_country %in% c("global"),], 
+        #             ctry.scales_s[(ctry.scales_s$coded_country %in% ctry.scales.representative_s$coded_country[!ctry.scales.representative_s$coded_country %in% c("global")]) |
+        #                           (ctry.scales_s$coded_country %in% select_ctry_psych[!select_ctry_psych %in% c("global")]),]
+        # )
+        df <- ctry.scales.representative_s
+
       }
       
       updateMultiInput_2(session = session, inputId = "sample_country_selection", choiceNames = choiceNames_sample, choiceValues = choiceValues_sample, 
                          selected = select_ctry_sample)
       updateMultiInput_2(session = session, inputId = "psych_country_selection", choiceNames = choiceNames_psych, choiceValues = choiceValues_psych, 
-                        selected = select_ctry_psych)
-      updateMultiInput_2(session = session, inputId = "cor_country_selection", choiceNames = choiceNames_psych, choiceValues = choiceValues_psych, 
-                         selected = choiceValues_psych)
+                         selected = select_ctry_psych)
+      updateMultiInput_2(session = session, inputId = "cor_country_selection", choiceNames = choiceNames_sample, choiceValues = choiceValues_sample, 
+                         selected = select_ctry_sample)
       
+      return(df)
       
-      switch(input$switch_sample,
-             "full" = ctry.scales,
-             "representative" = rbind(ctry.scales.representative[ctry.scales.representative$coded_country %in% c("global"),], 
-                                      ctry.scales[(ctry.scales$coded_country %in% ctry.scales.representative$coded_country[!ctry.scales.representative$coded_country %in% c("global")]) |
-                                                    (ctry.scales$coded_country %in% select_ctry_psych[!select_ctry_psych %in% c("global")]),]
-                                      ),
-             ctry.scales)
     }
   )
   
