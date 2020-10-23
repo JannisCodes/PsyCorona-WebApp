@@ -10,6 +10,7 @@
 /data/RMD*
 /data/rawdata*
 /data/shiny*
+/data/long*
 /rsconnect
 /alternative versions
 ShinyAppsSetup.R

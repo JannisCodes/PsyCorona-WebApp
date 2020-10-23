@@ -81,8 +81,123 @@ reducedFL<-reshape(reducedF, direction = "long",
                               "coded_country")
                     ) %>% filter(!is.na(EndDate))
 
+### Create country summaries (for time window) ###
+
+countryWeekly <- reducedFL %>% 
+  mutate(Dates = lubridate::parse_date_time(EndDate, "%m/%d/%Y %H:%M:%S"),
+         week = isoweek(Dates), 
+         # some weird inconsistencies in the function the added options ensure that Sunday is the last day of the week
+         weekLab = paste0(floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1)), " - ", 
+                          ceiling_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 7), change_on_boundary = FALSE)),
+         weekDate = floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1))) %>%
+  arrange(Dates) %>%
+  group_by(coded_country, week, weekLab, weekDate) %>%
+  summarise_at(vars(mvars), list(~ mean(., na.rm = T), 
+                                 ~ sd(., na.rm = T), 
+                                 n = ~ sum(!is.na(.)), 
+                                 se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                 lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                 upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
+                                 )
+               ) %>%
+  arrange(coded_country, week) %>%
+  mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .))) %>%
+  filter(sum(c_across(ends_with("_n"))) > length(mvars)) # drop all rows with only one participant (calculation of sd and se not possible)
+
+world.data <- ne_countries(scale = "medium", returnclass = "sf")
+world.data$iso_a2[world.data$admin=="Kosovo"] <- "XK"
+
+countryWeekly <- merge(x = countryWeekly, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T) %>% 
+  dplyr::select(-geometry)
+countryWeekly$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(countryWeekly$iso_a2))
+
+globalWeekly <- reducedFL %>% 
+  mutate(coded_country = "global",
+         Dates = lubridate::parse_date_time(EndDate, "%m/%d/%Y %H:%M:%S"),
+         week = isoweek(Dates), 
+         # some weird inconsistencies in the function the added options ensure that Sunday is the last day of the week
+         weekLab = paste0(floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1)), " - ", 
+                          ceiling_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 7), change_on_boundary = FALSE)),
+         weekDate = floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1))) %>%
+  #arrange(Dates) %>%
+  group_by(coded_country, week, weekLab, weekDate) %>%
+  summarise_at(vars(mvars), list(~ mean(., na.rm = T), 
+                                 ~ sd(., na.rm = T), 
+                                 n = ~ sum(!is.na(.)), 
+                                 se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                 lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                 upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
+                                 )
+               ) %>%
+  arrange(coded_country, week) %>%
+  mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .))) %>%
+  mutate(iso_a2 = NA,
+         flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
+
+weekly <- rbind(globalWeekly, countryWeekly)
+
+# input <- list(long_ctrs_country_selection = c("United States of America", "Germany", "Netherlands"), 
+#               long_ctrs_var = c("affBor"),
+#               ci = TRUE)
+# 
+# weeklySelection <- weekly %>% 
+#   ungroup() %>% 
+#   filter(coded_country %in% input$long_ctrs_country_selection) %>% 
+#   dplyr::select(coded_country, weekDate, value = one_of(paste0(input$long_ctrs_var, "_mean"))) %>%
+#   group_by(coded_country) %>%
+#   do(ds = list(
+#     data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$value))
+#   )) %>% 
+#   {purrr::map2(.$coded_country, .$ds, function(x, y){
+#     append(list(name = x), y)
+#   })}
+# 
+# weeklySelectionCI <- weekly %>% 
+#   ungroup() %>% 
+#   filter(coded_country %in% input$long_ctrs_country_selection) %>% 
+#   dplyr::select(coded_country, weekDate, lwr = one_of(paste0(input$long_ctrs_var, "_lwr")), upr = one_of(paste0(input$long_ctrs_var, "_upr"))) %>%
+#   group_by(coded_country) %>%
+#   do(ds = list(data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$lwr, .$upr)),
+#                type = 'arearange',
+#                fillOpacity = 0.3,
+#                lineWidth = 0,
+#                name = "95% Confidence Interval",
+#                zIndex = 0
+#                )) %>% 
+#   {purrr::map2(.$coded_country, .$ds, function(x, y){
+#     append(list(name = x), y)
+#   })}
+
+
 ### Follow-up Histogram ###
 
 hist(as.POSIXct(strptime(reducedFL$EndDate, "%m/%d/%Y %H:%M:%S")),
      "days", las=2, freq=T, format = "%d %b", xlab=NULL,
-     main="Participation Follow-up")
+     main="Participation over time")
+
+ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~coded_country, scales = "free_y") +
+  ggtitle("Participation Affect Boredom over Time per Country (individual y axes)")
+
+ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(trans='log2') +
+  facet_wrap(~coded_country) + #, scales = "free_y"
+  ggtitle("Participation Affect Boredom over Time per Country")
+
+### Save for Shiny ###
+
+weeklyRegions <- weekly %>% 
+  ungroup() %>%
+  dplyr::select(coded_country, flag) %>%
+  distinct()
+weeklyCountries <- weekly %>% 
+  ungroup() %>%
+  dplyr::select(coded_country, flag) %>%
+  distinct() %>%
+  filter(coded_country != "global")
+
+save(weekly, weeklyRegions, weeklyCountries, mvars, waves, file = "data/longitudinal.RData")
