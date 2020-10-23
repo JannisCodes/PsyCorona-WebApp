@@ -4,6 +4,7 @@ library(tidyr)
 library(ggplot2)
 library(stats)
 library(shinydashboard)
+library(shinythemes)
 library(metathis)
 library(stringr)
 library(shinyjs)
@@ -18,6 +19,8 @@ library(grDevices)
 library(shinyalert)
 library(shinyBS)
 library(htmltools)
+library(purrr)
+library(RColorBrewer)
 source("R/dependencies.R")
 source("R/input-multi.R")
 source("R/utils.R")
@@ -34,6 +37,7 @@ if (!file.exists("data/shinyDataAggregated.RData")) {
   data_prep()
 }
 load("data/shinyDataAggregated.RData")
+load("data/longitudinal.RData")
 
 
 updateMultiInput_2 <- function (session, inputId, label = NULL, selected = NULL, choices = NULL, choiceValues = NULL, choiceNames = NULL) {
@@ -175,7 +179,7 @@ ui <- dashboardPage(
     sidebarMenu(id = "sidebarMenu",
       menuItem("The Sample", tabName = "sample", icon = icon("fas fa-users")),
       menuItem("Psychological Variables", tabName = "Variables", icon = icon("fas fa-pencil-ruler")),
-      menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "coming soon", badgeColor = "orange"),
+      menuItem("Development", tabName = "development", icon = icon("fas fa-chart-line"), badgeLabel = "new", badgeColor = "blue"),
       menuItem("Data", tabName = "data", icon = icon("fas fa-share-square")),
       menuItem("About", tabName = "about", icon = icon("info")),
       menuItem(HTML(paste0("Take the survey now ", icon("external-link"))), icon=icon("fas fa-file-signature"), href = "https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", newtab = T),
@@ -531,19 +535,141 @@ ui <- dashboardPage(
              )
       ),
       tabItem(tabName = "development",
-              h2("Development over Time"),
-              fluidRow(
-                box(#title = "Explore The Data", 
-                  width = 12, 
-                  heigth = "500px",
-                  solidHeader = TRUE,
-                  tags$br(),
-                  tags$br(),
-                  h4(HTML(paste("<center>","As our efforts grow over time we will share data describing developments over time.", "</center>"))),
-                  h4(HTML(paste("<center>","As soon as we have multiple data waves you can explore this data here.", "</center>"))),
-                  tags$br()
-                )
-              )
+              #h2("Development over Time"),
+              navbarPage("Selection Title here:", #theme = shinytheme("flatly"),
+                         tabPanel("Multiple countries",
+                                      h2("Countries tab"),
+                                  box(#title = "Explore The Data", 
+                                    width = 12, 
+                                    #heigth = "500px",
+                                    solidHeader = TRUE,
+                                    highchartOutput("long_ctrs_hc"),
+                                    tags$br()
+                                    ),
+                                  box(width = 12,
+                                      solidHeader = T,
+                                      status = "primary",
+                                      #h4("Select Variables:"),
+                                      fluidRow(
+                                      column(width = 8, style = "margin-top: 6px;",
+                                             pickerInput(
+                                               inputId = "long_ctrs_var",
+                                               label = "Variable selection:",
+                                               #width = "80%",
+                                               choices = list(
+                                                 Cognitive = c("Loneliness"="lone01", "Paranoia"="para01", "Conspiracy"="consp01"),
+                                                 Behavior = c("Isolation Friends Offline"="isoFriends_inPerson", "Isolation Others Offline"="isoOthPpl_inPerson", 
+                                                              "Isolation Friends Online"="isoFriends_online", "Isolation Others Online"="isoOthPpl_online"),
+                                                 Emotion = c("Anxious"="affAnx", "Bored"="affBor", "Calm"="affCalm", "Depressed"="affDepr", "Energetic"="affEnerg", 
+                                                             "Nervous"="affNerv", "Exhausted"="affExh", "Inspired"="affInsp", "Relaxed"="affRel")
+                                               )
+                                             )
+                                             ),
+                                      column(width = 4, style = "margin-top: 0px;",
+                                             h5(tags$b("Confidence Interval:")),
+                                             switchInput(
+                                               inputId = "long_ctrs_CiSwitch",
+                                               onStatus = "success",
+                                               offStatus = "danger",
+                                               size = "mini",
+                                               value = FALSE
+                                             )
+                                      )),
+                                      hr(),
+                                      h4("Select Region:"),
+                                      multiInput(
+                                        inputId = "long_ctrs_country_selection",
+                                        label = "Please select the countries you are interested in (all countries n > 20):", 
+                                        choices = NULL,
+                                        choiceNames = lapply(seq_along(weeklyRegions$coded_country), 
+                                                             function(i) tagList(tags$img(src = weeklyRegions$flag[i],
+                                                                                          width = 20, 
+                                                                                          height = 15), 
+                                                                                 weeklyRegions$coded_country[i])),
+                                        choiceValues = weeklyRegions$coded_country,
+                                        selected = "global"
+                                      ),
+                                      div(style="display:inline-block;width:100%;text-align: center;",
+                                          actionBttn(
+                                            inputId = "long_ctrs_none", 
+                                            label = "None",
+                                            style = "simple", 
+                                            color = "primary",
+                                            size = "sm"),
+                                          HTML("&nbsp;&nbsp;"),
+                                          actionBttn(
+                                            inputId = "long_ctrs_all", 
+                                            label = "All",
+                                            style = "simple", 
+                                            color = "primary",
+                                            size = "sm")
+                                      )
+                                      )
+                                  ),
+                         tabPanel("Multiple Variables",
+                                  h2("Variable tab"),
+                                    box(#title = "Explore The Data", 
+                                      width = 12, 
+                                      heigth = "500px",
+                                      solidHeader = TRUE,
+                                      tags$br(),
+                                      tags$br(),
+                                      h4(HTML(paste("<center>","GRAPH 2 GOES HERE.", "</center>"))),
+                                      highchartOutput("long_vars_hc"),
+                                      tags$br()
+                                    ),
+                                  box(width = 12,
+                                      solidHeader = T,
+                                      status = "primary",
+                                      h4("Select Variables:"),
+                                      pickerInput(
+                                        inputId = "long_vars_country",
+                                        label = "country selection:",
+                                        #width = "80%",
+                                        choices = weeklyRegions$coded_country,
+                                        choicesOpt = list(content =  
+                                                            mapply(weeklyRegions$coded_country, weeklyRegions$flag, FUN = function(country, flagUrl) {
+                                                              HTML(paste(
+                                                                tags$img(src=flagUrl, width=20, height=15),
+                                                                country
+                                                              ))
+                                                            }, SIMPLIFY = FALSE, USE.NAMES = FALSE)),
+                                        selected = "global"
+                                      ),
+                                      hr(),
+                                      h4("Select Variable(s):"),
+                                      multiInput(
+                                        inputId = "long_vars_variables",
+                                        label = "Please select the variables you are interested in:", 
+                                        choices = NULL,
+                                        choiceNames = c( "Anxious", "Bored", "Calm", "Depressed", "Energetic", 
+                                                         "Nervous", "Exhausted", "Inspired", "Relaxed", 
+                                                         "Loneliness", "Paranoia", "Conspiracy", 
+                                                         "Isolation Friends Offline", "Isolation Others Offline", 
+                                                         "Isolation Friends Online", "Isolation Others Online"),
+                                        choiceValues = mvars,
+                                        selected = "affAnx"
+                                      ),
+                                      div(style="display:inline-block;width:100%;text-align: center;",
+                                          actionBttn(
+                                            inputId = "long_vars_none", 
+                                            label = "None",
+                                            style = "simple", 
+                                            color = "primary",
+                                            size = "sm"),
+                                          HTML("&nbsp;&nbsp;"),
+                                          actionBttn(
+                                            inputId = "long_vars_all", 
+                                            label = "All",
+                                            style = "simple", 
+                                            color = "primary",
+                                            size = "sm")
+                                      )
+                                  )
+                         )
+              ),
+              
+              
       ),
       tabItem(tabName = "data",
               fluidRow(
@@ -1719,6 +1845,183 @@ server <- function(input, output, session) {
   })
 
   # -----
+  # Longitudinal 
+  
+  titleTxtLong <- list(affAnx = "Anxious", 
+                       affBor = "Bored", 
+                       affCalm = "Calm", 
+                       affDepr = "Depressed", 
+                       affEnerg = "Energetic",  
+                       affNerv = "Nervous", 
+                       affExh = "Exhausted", 
+                       affInsp = "Inspired", 
+                       affRel = "Relaxed",
+                       lone01 = "Loneliness Item goes here",
+                       para01 = "State Paranoia Item goes here",
+                       consp01 = "Conspiracy Item goes here",
+                       isoFriends_inPerson = "Number of days per week with <b>in-person</b> contacts with friends.", 
+                       isoOthPpl_inPerson = "Number of days per week with <b>in-person</b> contacts with other people.", 
+                       isoFriends_online = "Number of days per week with <b>online</b> contacts with friends.",
+                       isoOthPpl_online = "Number of days per week with <b>online</b> contacts with other people.")
+  
+  varLabLong <- c("affAnx"="Anxious", 
+                  "affBor"="Bored", 
+                  "affCalm"="Calm", 
+                  "affDepr"="Depressed", 
+                  "affEnerg"="Energetic",
+                  "affNerv"="Nervous", 
+                  "affExh"="Exhausted", 
+                  "affInsp"="Inspired", 
+                  "affRel"="Relaxed",
+                  "lone01"="Loneliness", 
+                  "para01"="State Paranoia", 
+                  "consp01"="Conspiracy",
+                  "isoFriends_inPerson"="Friends Isolation Offline", 
+                  "isoOthPpl_inPerson"="Others Isolation Offline", 
+                  "isoFriends_online"="Friends Isolation Online",
+                  "isoOthPpl_online"="Others Isolation Online")
+  
+  minLong <- list(affAnx = 1,
+                  affBor = 1,
+                  affCalm = 1,
+                  affDepr = 1,
+                  affEnerg = 1,
+                  affNerv = 1,
+                  affExh = 1,
+                  affInsp = 1,
+                  affRel = 1,
+                  lone01 = 0,
+                  para01 = 0,
+                  consp01 = 0,
+                  isoFriends_inPerson = 0,
+                  isoOthPpl_inPerson = 0,
+                  isoFriends_online = 0,
+                  isoOthPpl_online = 0)
+  
+  maxLong <- list(affAnx = 5,
+                  affBor = 5,
+                  affCalm = 5,
+                  affDepr = 5,
+                  affEnerg = 5, 
+                  affNerv = 5, 
+                  affExh = 5, 
+                  affInsp = 5, 
+                  affRel = 5,
+                  lone01 = 5,
+                  para01 = 10,
+                  consp01 = 10,
+                  isoFriends_inPerson = 7,
+                  isoOthPpl_inPerson = 7,
+                  isoFriends_online = 7,
+                  isoOthPpl_online = 7)
+  
+  lab.y.ends.long <- list(affAnx = c("not at all", "very much"),
+                          affBor = c("not at all", "very much"),
+                          affCalm = c("not at all", "very much"),
+                          affDepr = c("not at all", "very much"),
+                          affEnerg = c("not at all", "very much"),
+                          affNerv = c("not at all", "very much"),
+                          affExh = c("not at all", "very much"),
+                          affInsp = c("not at all", "very much"),
+                          affRel = c("not at all", "very much"),
+                          lone01 = c("Never", "All the time"),
+                          para01 = c("Not at all", "Very much"),
+                          consp01 = c("0%", "100%"),
+                          isoFriends_inPerson = c(1,7),
+                          isoOthPpl_inPerson = c(1,7),
+                          isoFriends_online = c(1,7),
+                          isoOthPpl_online = c(1,7))
+  
+  output$long_ctrs_hc <- renderHighchart({
+    # for testing:
+    # input <- list(long_ctrs_country_selection = c("United States of America", "Germany"), long_ctrs_var = c("affBor_mean"))
+  
+    weeklySelection <- weekly %>% 
+      ungroup() %>% 
+      filter(coded_country %in% input$long_ctrs_country_selection) %>% 
+      dplyr::select(coded_country, weekDate, value = one_of(paste0(input$long_ctrs_var, "_mean"))) %>%
+      group_by(coded_country) %>%
+      do(ds = list(
+        data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$value)),
+        type = "spline",
+        showInLegend = TRUE
+      )) %>% 
+      {purrr::map2(.$coded_country, .$ds, function(x, y){
+        append(list(name = x), y)
+      })}
+    
+    weeklySelectionCI <- weekly %>% 
+      ungroup() %>% 
+      filter(coded_country %in% input$long_ctrs_country_selection) %>% 
+      dplyr::select(coded_country, weekDate, lwr = one_of(paste0(input$long_ctrs_var, "_lwr")), upr = one_of(paste0(input$long_ctrs_var, "_upr"))) %>%
+      group_by(coded_country) %>%
+      do(ds = list(data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$lwr, .$upr)),
+                   type = 'arearange',
+                   fillOpacity = 0.3,
+                   lineWidth = 0,
+                   name = "95% Confidence Interval",
+                   zIndex = 0, 
+                   showInLegend = FALSE,
+                   visible = as.logical(input$long_ctrs_CiSwitch)
+      )) %>% 
+      {purrr::map2(.$coded_country, .$ds, function(x, y){
+        append(list(name = x), y)
+      })}
+    
+    highchart() %>% 
+      hc_chart(zoomType = "x") %>% 
+      hc_add_series_list(weeklySelection) %>% 
+      hc_add_series_list(weeklySelectionCI) %>% 
+      hc_xAxis(type = "datetime") %>% 
+      hc_yAxis(title = list(text = as.character(varLabLong[input$long_ctrs_var])),
+               min = minLong[[input$long_ctrs_var]],
+               max = maxLong[[input$long_ctrs_var]],
+               showLastLabel = T,
+               showFirstLabel = T,
+               opposite = F,
+               plotLines = list(
+                 list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][1]),
+                      color = "#'FF0000",
+                      width = 2,
+                      value = minLong[[input$long_ctrs_var]]),
+                 list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][2]),
+                      color = "#'FF0000",
+                      width = 2,
+                      value = maxLong[[input$long_ctrs_var]]))) %>%
+      hc_plotOptions(
+        spline = list(
+          #color = brewer.pal(length(input$long_ctrs_country_selection), "Dark2"),
+          dataLabels = list(enabled = F),
+          enableMouseTracking = TRUE, 
+          showInNavigator = TRUE),
+        arearange = list(
+          #color = brewer.pal(length(input$long_ctrs_country_selection), "Dark2"),
+          enableMouseTracking = FALSE, 
+          marker = list(enabled = FALSE)),
+        series = list(events = list(legendItemClick = JS("function(e) { return false; } ")))
+        ) %>%
+      hc_navigator(enabled = TRUE,
+                   maskFill = 'rgba(180, 198, 220, 0.25)',
+                   series = list(
+                     type = "spline" # you can change the type
+                     )) %>%
+      hc_colors(brewer.pal(length(input$long_ctrs_country_selection), "Dark2")[1:length(input$long_ctrs_country_selection)]) %>%
+      hc_legend(enabled = TRUE) %>%
+      hc_tooltip(valueDecimals = 2) %>%
+      hc_title(text = titleTxtLong[[input$long_ctrs_var]]) %>%
+      hc_tooltip(crosshairs = TRUE) %>%
+      hc_rangeSelector( 
+        enabled = TRUE,
+        verticalAlign = "top",
+        buttons = list(
+          list(type = 'all', text = 'All'),
+          list(type = 'month', count = 3, text = '4m'),
+          list(type = 'month', count = 2, text = '2m'),
+          list(type = 'week', count = 6, text = '6w')
+        ))
+  })
+  
+  # -----
   reactive_ctry.scales <- eventReactive(
     c(input$switch_sample, input$switch_transformation),
     {
@@ -1890,7 +2193,37 @@ server <- function(input, output, session) {
     )
   })
   
+  observeEvent(input$long_ctrs_none, {
+    updateMultiInput(
+      session = session,
+      inputId = "long_ctrs_country_selection",
+      selected = character(0)
+    )
+  })
   
+  observeEvent(input$long_ctrs_all, {
+    updateMultiInput(
+      session = session,
+      inputId = "long_ctrs_country_selection",
+      selected = weeklyRegions$coded_country
+    )
+  })
+  
+  observeEvent(input$long_vars_none, {
+    updateMultiInput(
+      session = session,
+      inputId = "long_vars_variables",
+      selected = character(0)
+    )
+  })
+  
+  observeEvent(input$long_vars_all, {
+    updateMultiInput(
+      session = session,
+      inputId = "long_vars_variables",
+      selected = mvars
+    )
+  })
   
   shinyjs::onclick("menu",
                    shinyjs::toggle(id = "sideFooter", anim = F))
