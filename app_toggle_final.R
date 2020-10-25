@@ -622,20 +622,31 @@ ui <- dashboardPage(
                                       solidHeader = T,
                                       status = "primary",
                                       h4("Select Variables:"),
-                                      pickerInput(
-                                        inputId = "long_vars_country",
-                                        label = "country selection:",
-                                        #width = "80%",
-                                        choices = weeklyRegions$coded_country,
-                                        choicesOpt = list(content =  
-                                                            mapply(weeklyRegions$coded_country, weeklyRegions$flag, FUN = function(country, flagUrl) {
-                                                              HTML(paste(
-                                                                tags$img(src=flagUrl, width=20, height=15),
-                                                                country
-                                                              ))
-                                                            }, SIMPLIFY = FALSE, USE.NAMES = FALSE)),
-                                        selected = "global"
-                                      ),
+                                      fluidRow(
+                                        column(width = 8, style = "margin-top: 6px;",
+                                               pickerInput(inputId = "long_vars_country",
+                                                           label = "country selection:",
+                                                            #width = "80%",
+                                                            choices = weeklyRegions$coded_country,
+                                                            choicesOpt = list(content =  
+                                                                                mapply(weeklyRegions$coded_country, weeklyRegions$flag, FUN = function(country, flagUrl) {
+                                                                                  HTML(paste(
+                                                                                    tags$img(src=flagUrl, width=20, height=15),
+                                                                                    country
+                                                                                  ))
+                                                                                }, SIMPLIFY = FALSE, USE.NAMES = FALSE)),
+                                                            selected = "global"
+                                                           )),
+                                        column(width = 4, style = "margin-top: 0px;",
+                                               h5(tags$b("Confidence Interval:")),
+                                               switchInput(
+                                                 inputId = "long_vars_CiSwitch",
+                                                 onStatus = "success",
+                                                 offStatus = "danger",
+                                                 size = "mini",
+                                                 value = FALSE
+                                               )
+                                        )),
                                       hr(),
                                       h4("Select Variable(s):"),
                                       multiInput(
@@ -1934,7 +1945,11 @@ server <- function(input, output, session) {
   
   output$long_ctrs_hc <- renderHighchart({
     # for testing:
-    # input <- list(long_ctrs_country_selection = c("United States of America", "Germany"), long_ctrs_var = c("affBor_mean"))
+    # input <- list(long_ctrs_country_selection = c("United States of America", "Germany", "Netherlands"),
+    #               long_ctrs_var = c("affBor"),
+    #               long_vars_country = c("United States of America"),
+    #               long_vars_variables = c("affBor", "affDepr"),
+    #               ci = TRUE)
   
     weeklySelection <- weekly %>% 
       ungroup() %>% 
@@ -2009,6 +2024,109 @@ server <- function(input, output, session) {
       hc_legend(enabled = TRUE) %>%
       hc_tooltip(valueDecimals = 2) %>%
       hc_title(text = titleTxtLong[[input$long_ctrs_var]]) %>%
+      hc_tooltip(crosshairs = TRUE) %>%
+      hc_rangeSelector( 
+        enabled = TRUE,
+        verticalAlign = "top",
+        buttons = list(
+          list(type = 'all', text = 'All'),
+          list(type = 'month', count = 3, text = '4m'),
+          list(type = 'month', count = 2, text = '2m'),
+          list(type = 'week', count = 6, text = '6w')
+        ))
+  })
+  
+  output$long_vars_hc <- renderHighchart({
+    # for testing:
+    # input <- list(long_ctrs_country_selection = c("United States of America", "Germany"), long_ctrs_var = c("affBor_mean"))
+    
+    weeklySelection <- weekly %>%
+      ungroup() %>%
+      filter(coded_country %in% input$long_vars_country) %>%
+      dplyr::select(coded_country, weekDate, one_of(paste0(input$long_vars_variables, "_mean"))) %>%
+      reshape(., 
+              direction = "long",
+              varying = list(paste0(input$long_vars_variables, "_mean")),
+              timevar = "variable",
+              v.names = "value",
+              idvar = c("coded_country", "weekDate"),
+              times = input$long_vars_variables) %>%
+      group_by(variable) %>%
+      do(ds = list(
+        data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$value)),
+        type = "spline",
+        showInLegend = TRUE
+      )) %>%
+      {purrr::map2(.$variable, .$ds, function(x, y){
+        append(list(name = x), y)
+      })}
+    
+    weeklySelectionCI <- weekly %>%
+      ungroup() %>%
+      filter(coded_country %in% input$long_vars_country) %>%
+      dplyr::select(coded_country, weekDate, one_of(sort(c(paste0(input$long_vars_variables, "_lwr"), paste0(input$long_vars_variables, "_upr"))))) %>%
+      reshape(., 
+              direction='long', 
+              varying=sort(c(paste0(input$long_vars_variables, "_lwr"), paste0(input$long_vars_variables, "_upr"))), 
+              timevar='variable',
+              times=input$long_vars_variables,
+              v.names=c('lwr', 'upr'),
+              idvar=c("coded_country", "weekDate")) %>%
+      group_by(variable) %>%
+      do(ds = list(data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$lwr, .$upr)),
+                   type = 'arearange',
+                   fillOpacity = 0.3,
+                   lineWidth = 0,
+                   name = "95% Confidence Interval",
+                   zIndex = 0,
+                   showInLegend = FALSE,
+                   visible = as.logical(input$long_vars_CiSwitch)
+      )) %>%
+      {purrr::map2(.$variable, .$ds, function(x, y){
+        append(list(name = x), y)
+      })}
+    
+    highchart() %>% 
+      hc_chart(zoomType = "x") %>% 
+      hc_add_series_list(weeklySelection) %>% 
+      hc_add_series_list(weeklySelectionCI) %>% 
+      hc_xAxis(type = "datetime") %>% 
+      # hc_yAxis(title = list(text = as.character(varLabLong[input$long_ctrs_var])),
+      #          min = minLong[[input$long_ctrs_var]],
+      #          max = maxLong[[input$long_ctrs_var]],
+      #          showLastLabel = T,
+      #          showFirstLabel = T,
+      #          opposite = F,
+      #          plotLines = list(
+      #            list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][1]),
+      #                 color = "#'FF0000",
+      #                 width = 2,
+      #                 value = minLong[[input$long_ctrs_var]]),
+      #            list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][2]),
+      #                 color = "#'FF0000",
+      #                 width = 2,
+      #                 value = maxLong[[input$long_ctrs_var]]))) %>%
+      hc_plotOptions(
+        spline = list(
+          #color = brewer.pal(length(input$long_ctrs_country_selection), "Dark2"),
+          dataLabels = list(enabled = F),
+          enableMouseTracking = TRUE, 
+          showInNavigator = TRUE),
+        arearange = list(
+          #color = brewer.pal(length(input$long_ctrs_country_selection), "Dark2"),
+          enableMouseTracking = FALSE, 
+          marker = list(enabled = FALSE)),
+        series = list(events = list(legendItemClick = JS("function(e) { return false; } ")))
+      ) %>%
+      hc_navigator(enabled = TRUE,
+                   maskFill = 'rgba(180, 198, 220, 0.25)',
+                   series = list(
+                     type = "spline" # you can change the type
+                   )) %>%
+      hc_colors(brewer.pal(length(input$long_vars_variables), "Dark2")[1:length(input$long_vars_variables)]) %>%
+      hc_legend(enabled = TRUE) %>%
+      hc_tooltip(valueDecimals = 2) %>%
+      hc_title(text = input$long_vars_country) %>%
       hc_tooltip(crosshairs = TRUE) %>%
       hc_rangeSelector( 
         enabled = TRUE,

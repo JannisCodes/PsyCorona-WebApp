@@ -1,6 +1,6 @@
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada",
          "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander",
-         "scales", "lubridate", "rnaturalearth", "rnaturalearthdata")
+         "scales", "lubridate", "rnaturalearth", "rnaturalearthdata", "highcharter")
 
 invisible(lapply(lib, library, character.only = TRUE))
 lapply(lib, library, character.only = TRUE)
@@ -135,39 +135,6 @@ globalWeekly <- reducedFL %>%
          flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
 
 weekly <- rbind(globalWeekly, countryWeekly)
-
-# input <- list(long_ctrs_country_selection = c("United States of America", "Germany", "Netherlands"), 
-#               long_ctrs_var = c("affBor"),
-#               ci = TRUE)
-# 
-# weeklySelection <- weekly %>% 
-#   ungroup() %>% 
-#   filter(coded_country %in% input$long_ctrs_country_selection) %>% 
-#   dplyr::select(coded_country, weekDate, value = one_of(paste0(input$long_ctrs_var, "_mean"))) %>%
-#   group_by(coded_country) %>%
-#   do(ds = list(
-#     data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$value))
-#   )) %>% 
-#   {purrr::map2(.$coded_country, .$ds, function(x, y){
-#     append(list(name = x), y)
-#   })}
-# 
-# weeklySelectionCI <- weekly %>% 
-#   ungroup() %>% 
-#   filter(coded_country %in% input$long_ctrs_country_selection) %>% 
-#   dplyr::select(coded_country, weekDate, lwr = one_of(paste0(input$long_ctrs_var, "_lwr")), upr = one_of(paste0(input$long_ctrs_var, "_upr"))) %>%
-#   group_by(coded_country) %>%
-#   do(ds = list(data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$lwr, .$upr)),
-#                type = 'arearange',
-#                fillOpacity = 0.3,
-#                lineWidth = 0,
-#                name = "95% Confidence Interval",
-#                zIndex = 0
-#                )) %>% 
-#   {purrr::map2(.$coded_country, .$ds, function(x, y){
-#     append(list(name = x), y)
-#   })}
-
 
 ### Follow-up Histogram ###
 
