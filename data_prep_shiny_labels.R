@@ -13,7 +13,7 @@
 #
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada",
          "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander",
-         "scales", "lubridate", "rnaturalearth", "rnaturalearthdata")
+         "scales", "lubridate", "rnaturalearth", "rnaturalearthdata", "labelled")
 
 invisible(lapply(lib, library, character.only = TRUE))
 lapply(lib, library, character.only = TRUE)
@@ -102,7 +102,12 @@ data_prep <- function(){
   print("Preparing Data")
   world.data <- ne_countries(scale = "medium", returnclass = "sf")
   world.data$iso_a2[world.data$admin=="Kosovo"] <- "XK"
-  raw.data <- read.csv("data/rawdatalabels.csv", na.strings = " ") # raw data provided
+  
+  raw.data <- labelled::unlabelled(read_sav("data/RMD40_Joshua + Leslie Zwerwer_2020-10-28 23-10 CET.sav")) %>%
+    mutate(coded_country = na_if(coded_country, "")) %>%
+    mutate_at(vars(ends_with("Date")), as.character)
+  
+  #raw.data <- read.csv("data/rawdatalabels.csv", na.strings = " ") # raw data provided
   #raw.data$coded_country[raw.data$coded_country == " "] <- NA # set empty cells in coded_country column to NA
   raw.data <- raw.data %>% drop_na(coded_country) # drop participants with missing counties
   #raw.data <- raw.data[raw.data$EndDate < "5/1/2020",] # drop responses after April
@@ -110,6 +115,7 @@ data_prep <- function(){
   
   #table(raw.data$consp01)
   #Re-order factor levels and make numeric variables with the right range
+  # DONT KNOW WHETHER THIS IS STILL NECESSARY
   raw.data <- raw.data %>%
     mutate_at(.vars = vars(matches("^(?=.*c19perBeh)(?!.*harmonized)|^(?=.*c19Hope)(?!.*harmonized)|^(?=.*c19Eff)(?!.*harmonized)", perl = T)),
               .funs = list(label = ~factor(., levels = c("Strongly disagree", "Somewhat disagree", "Disagree", "Neither agree nor disagree", "Somewhat agree", "Agree", "Strongly agree")))) %>%
@@ -199,7 +205,7 @@ data_prep <- function(){
        file = "data/shinyDataShinyPrep.RData")
   
   # exclude participants only for remaining cross-sectional analysis
-  shiny_prep <- shiny_prep[shiny_prep$EndDate < "5/1/2020",]
+  shiny_prep <- shiny_prep[shiny_prep$EndDate < ymd("2020-5-1"),]
   
   ### Creating scales for entire Sample and standardized entire sample ###
   ctry.scales <- filter_cntry(shiny_prep %>% filter(!is.na(coded_country)) %>% dplyr::group_by(coded_country),mvars,sdvars,custom_names)
