@@ -21,7 +21,7 @@ library(htmltools)
 source("R/dependencies.R")
 source("R/input-multi.R")
 source("R/utils.R")
-source("data_prep_shiny.R")
+source("data_prep_shiny_labels.R")
 
 # R Studio Clean-Up:
 #cat("\014") # clear console
