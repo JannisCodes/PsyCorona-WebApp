@@ -27,7 +27,7 @@ colnames(shiny_prep)[colnames(shiny_prep) %in% c("StartDate","EndDate")] <- past
 
 waves <- c("w0","w1", "w2", "w3", "w4", "w5",
            "w6", "w7", "w8", "w9", "w10",
-           "w11")
+           "w11","w12","w13","w14", "w15")
 
 ### combine waves with varnames ###
 
@@ -112,6 +112,11 @@ countryWeekly <- reducedFL %>%
   arrange(coded_country, week) %>%
   mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .)))
 
+# countryWeekly %>%
+#   filter(coded_country == "United States of America") %>%
+#   dplyr::select(weekDate, ends_with("_n")) %>%
+#   View(.)
+
 # remove any that measures that have less than 20 participants
 #  there is probably a better way of doing this but quick and dirty here we go.
 #  better solution probably for-loop or spread and gather stuff: https://stackoverflow.com/questions/48600340/change-column-value-to-na-based-on-other-column-condition
@@ -134,7 +139,7 @@ countryWeeklyRed[nCols][countryWeeklyRed[nCols] <= 9] <- NA
 # remove all rows that have missingness on all
 # alternative: weeklyOut3 <- weeklyOut[!rowSums(is.na(weeklyOut[nCols])),]
 countryWeeklyRed <- countryWeeklyRed %>%
-  filter_at(vars(nCols),all_vars(!is.na(.))) %>%
+  #filter_at(vars(nCols),all_vars(!is.na(.))) %>%
   group_by(coded_country) %>%
   filter(n()>2) %>% # filter all countries that 3 or more measurement weeks
   ungroup()
@@ -167,7 +172,7 @@ globalWeekly <- reducedFL %>%
                                  )
                ) %>%
   arrange(coded_country, week) %>%
-  mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .))) %>%
+  #mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .))) %>%
   mutate(iso_a2 = NA,
          flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
 

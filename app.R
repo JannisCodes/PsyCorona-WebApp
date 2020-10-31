@@ -343,11 +343,10 @@ ui <- dashboardPage(
                              tabPanel("Government Reponse",
                                       value = 1,
                                       highchartOutput("boxGov"),
-                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) 
-                                      of the countries you choose to select as well as an interval that indicates the uncertainty around the average value given the sample 
-                                      (i.e., confidence interval - range of values that is likely to encompass the true value). Please keep in mind that 
-                                      (a) one country being higher or lower than another country can have a multitude of reasons (including, when most people answered the question), and 
-                                      (b) that the data might not always be representative the entire country."
+                                      "Note: Every person who took the survey could answer the above question. Here we present the average rating level (i.e., mean) of a given country, 
+                                      as well as an interval that indicates the uncertainty around the average value given the sample (i.e., confidence interval). 
+                                      Please keep in mind that (a) one country being higher or lower than another country can have a multitude of reasons (including the date in which they answered the question), 
+                                      and (b) the data might not always be representative of the entire country’s population."
                              ),
                              tabPanel("Community Response", 
                                       value = 2,
@@ -701,17 +700,17 @@ ui <- dashboardPage(
                     HTML("To protect the privacy and confidentiality of our participants, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable).
                     <br><b>Anonymization:</b><br>  
                     <ol>
-                    <li>We use <b>data aggregation</b> as the main method of data anonymization. This means that we never show data of a single person or small groups of people,
-                    instead we combine data of multiple people to show country-level summary statistics. As an example, you can see the average level of hope in a country and 
-                    how much variation there was in the responses but you cannot see the rating of any individual respondent.
+                    <li>We use <b>data aggregation</b> as the main method of data anonymization. This means that we never show data of a single person or small groups of people; instead, 
+                    we combine data of hundreds-to-thousands of people to show country-level summary statistics. As an example, you can see the average level of hope in a country and how much 
+                    variation there was in the responses, but you cannot see the rating of any individual respondent.
                     <br>Importantly, the application only has access to the country-level summaries, which means that data cannot be linked or combined to single out individuals 
                     (e.g., you cannot see the level of hope for U.S. women, aged 25-34, who speak Farsi and have a doctorate degree).
-                    <br><i>Note:</i> For aggregate data to effectively be anonymous we need to combine the responses of enough people, which is why we never display data of countries with less than 20 respondents.</li>
+                    <br><i>Note:</i> In order for aggregate data to be anonymous, we need to combine the responses of enough people. This is why we never display data of countries with less than 20 respondents.</li>
                     
                     <li>When we show summaries of categorical data (e.g., percentage of people identifying as female), we additionally apply <b>data perturbations</b> for small groups. This means that the counts and percentages 
                     for groups that comprise less than 20 people (less than 50 for political orientation) have been slightly changed (e.g., a random number between -2 and 2 or between -5 and 5 has been added; 
                     this process is also sometimes referred to as 'artificial noise addition'). 
-                    <br>Please note that this also means that the numbers are not always 100% accurate. However, with this method, we can represent the full diversity of our sample while still protecting the identities of people in 
+                    <br>Please note that this also means that the numbers are not always 100% accurate. However, with this method, we can represent the full diversity of our sample whilst still protecting the identities of people in 
                     small or vulnerable groups.</li>
                     </ol>
                     These are the main ways in which we protect the personal data of our participants and make sure that no individual is identifiable within the application. If you have any questions or concerns, please feel
@@ -725,8 +724,8 @@ ui <- dashboardPage(
                 box(title = "Data Collaboration",
                     width = 12, 
                     solidHeader = TRUE,
-                    "One major aim of the PsyCorona initiative is to combine psychological reactions with local, regional, and national
-                              data on the Covid-19 spread and governmental reactions towards it. In our efforts we collaborate with ",
+                    "One major aim of the PsyCorona initiative is to combine psychological reactions with local, regional, 
+                    and national data on the Covid-19 spread and governmental reactions. In our efforts we collaborate with ",
                     tags$a(href="https://dataversuscorona.com/", 
                            target="_blank",
                            "Data Scientists Against Corona"),
@@ -742,7 +741,7 @@ ui <- dashboardPage(
                     width = 12, 
                     solidHeader = TRUE,
                     "The aim of the PsyCorona initiative is to build a collaborative research network. If you are interested in becoming
-                              part of the PsyCorona initiative, you contact us via our website: ",
+                              part of the PsyCorona collaboration, you can contact us via our website: ",
                     tags$a(href="https://psycorona.org/", 
                            target="_blank",
                            "www.psycorona.org."),
@@ -767,23 +766,19 @@ ui <- dashboardPage(
                   heigth = "500px",
                   solidHeader = TRUE,
                   
-                  h4("The Initiative:"),
-                  "Psychology and culture could affect the spread of the virus; human psychology could also change in response to the pandemic. 
-                            We aim to mobilize behavioral and data scientists to identify targets for rapid intervention to slow the spread of the pandemic and minimize its social damage. 
-                            All the scientists on the team are operating on a largely volunteer basis, relying on existing infrastructure and their own resources.
-                            This is a global project based at New York University-Abu Dhabi and the University of Groningen (The Netherlands). 
-                            We have evolved into a distributed team across the world, with autonomous work groups in numerous countries, each of whom understands the PsyCorona mission goals and needs. 
-                            We aim to ensure global involvement, so we are translating the survey into more languages on a daily basis.
-                            Currently more than 100 international social scientists are working together to collect immediate and longitudinal information on 
-                            the key social science factors that might predict the spread of COVID-19. The project, is documented in detail on our",
+                  h4("The Collaboration:"),
+                  "Psychology and culture could affect the spread of the virus; human psychology could also change in response to the pandemic. Early in the pandemic, 
+                  we sought to mobilize behavioral and data scientists to identify psychological factors that could slow the spread of the pandemic and minimize its social damage. 
+                  All the scientists in the collaboration operate on a largely volunteer basis, relying on existing infrastructure and their own resources. 
+                  This is an international project based at New York University-Abu Dhabi and the University of Groningen (The Netherlands). We have evolved into a distributed team across the world, 
+                  with autonomous work groups in numerous countries, each of whom understands the PsyCorona mission goals and needs. We aim to ensure global involvement, 
+                  so we translated the survey into 30 languages and worked with more than 100 international social scientists to collect immediate and longitudinal information on 
+                  psychological factors that might predict the spread of COVID-19. Further details are available at the",
                   tags$a(href="https://www.psycorona.org", 
                          target="_blank",
                          "PsyCorona website."),
-                  " We pair social- and data scientists to connect data across multiple layers—individual survey reports of", prettyNum(sum(world.n$n), big.mark=" ", scientific=FALSE), 
-                  "participants from more than",length(world.n$coded_country)-1,"countries, satellite data documenting social distancing, and World Health Organization data on county level spread 
-                             of the disease.",
                   br(),
-                  "You can find the PsyCorona Initiative on: ",
+                  "You can find the PsyCorona collaboration on: ",
                   tags$a(href="https://www.facebook.com/PsyCorona-100726584925027", 
                          target="_blank",
                          icon("facebook")),
@@ -800,16 +795,14 @@ ui <- dashboardPage(
                   tags$ul(
                     tags$li("The ",
                             a("Data", onclick = "openTab('data')", href="#"),
-                            "tab provides information on how we deal with our participants' data and how you can get involved in data analysis.
-                                      Here we also share information on our open-source code and connections to meta data repositories we are aiming to 
-                                      connect to the psychological responses we measure during the PsyCorona initiative.")),
+                            "tab provides information on how we deal with our participants' data and how you can get involved in data analysis. 
+                            Here we also share information on our open-source code and on the connections to metadata repositories we aim to connect to the psychological responses.")),
                   "The remaining three tabs offer tools to visualize the psychological data we collect in this project.",
                   tags$ul(
                     tags$li("The ",
                             a("The Sample", onclick = "openTab('sample')", href="#"),
-                            " tab offers an insight into the diversity of our participants. We share compound information on some demographic variables,
-                                      as well as the number of participants we have reached in each country. Please note that to protect the privacy and anonymity
-                                      of our participants data visualizations are only available for selections of more than 20 people."),
+                            "tab offers an insight into the diversity of our participants. We share compound information on some demographic variables, as well as the number of respondents in each country. 
+                            Please note that to protect the privacy and anonymity of our participants, data visualizations are only available for selections of more than 20 people."),
                     tags$li("The ",
                             a("Psychological Variables", onclick = "openTab('Variables')", href="#"),
                             " tab offers an interactive interface to explore the psychological variables we collect in the initiative's baseline survey. 
@@ -817,12 +810,10 @@ ui <- dashboardPage(
                             tags$a(href="https://nyu.qualtrics.com/jfe/form/SV_6svo6J4NF7wE6tD", 
                                    target="_blank",
                                    "tiny.cc/corona_survey"),
-                            "and currently includes over", prettyNum(sum(world.n$n), big.mark=" ", scientific=FALSE), 
-                            "participants. You can explore psychological reactions to the coronavirus at five different levels: (1) Governmental Response, 
-                                      (2) Community Response, (3) Cognitive Response, (4) Behavioral Response, as well as (5) Emotional Reponse. Additionally, we offer a
-                                      tool to explore the mean level relationship between different variables for different countries. Please note that to protect the 
-                                      privacy and anonymity of our participants we only provide country-level visualizations once we have data for more than 20 people from 
-                                      any particular country."),
+                            "and currently includes over 50 000 participants. You can explore psychological reactions to the coronavirus at five different levels: 
+                            (1) Governmental Response, (2) Community Response, (3) Cognitive Response, (4) Behavioral Response, as well as (5) Emotional Response. 
+                            Additionally, we offer a tool to explore the mean level relationship between different variables for different countries. Please note that to protect the 
+                            privacy and anonymity of our participants we only provide country-level visualizations once we have data for more than 20 people from any particular country."),
                     tags$li("The ",
                             a("Development", onclick = "openTab('development')", href="#"),
                             " tab gives you the possibility to interactively explore how different areas are evolving over time. This section is currently partly under
@@ -876,17 +867,18 @@ server <- function(input, output, session) {
               #alertId="a1",
               title = paste(icon("warning"),"Data Notification"),
               content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
-              For further information see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
-              This means the data might not be representative of how countries are doing right now. We now also offer <b> nationally representative, standardized, and developmental 
-              displays of the data whenever they are available</b>. You can find these options in the left sidebar.",
+              For further information, see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
+              This means the data might not be representative of how countries are doing right now. 
+              Where possible, we also provide <b> nationally representative, standardized, and developmental (longitudinal) displays of the data</b>. 
+              You can find these options in the left sidebar.",
               style = "warning")
   
   createAlert(session = session,
               anchorId = "longitudinalAlert",
               #alertId="a1",
               title = paste(icon("warning"),"Preliminary Data"),
-              content="You are beta testing this section. We are currenlty working on ways to provide access to more data and more countries to visualize. 
-              However, to protect the privacy of our participants we will never release visualizations of data where we cannot be certain that the data are anonymous.
+              content="You are beta testing this section. We aim to provide access to more data from more countries. However, to protect the privacy of our participants, 
+              we will never release visualizations of data if we cannot be certain that the data are anonymous. 
               Additionally, standardized visualization options will be available soon for all developmental visualizations.",
               style = "warning")
   
@@ -1966,16 +1958,16 @@ server <- function(input, output, session) {
   
   output$long_ctrs_hc <- renderHighchart({
     # for testing:
-    # input <- list(long_ctrs_country_selection = c("Spain", "Argentina"),
-    #               long_ctrs_var = c("isoFriends_inPerson"),
+    # input <- list(long_ctrs_country_selection = c("United States of America"),
+    #               long_ctrs_var = c("lone01"),
     #               long_vars_country = c("United States of America"),
     #               long_vars_variables = c("affBor", "affDepr"),
     #               long_ctrs_CiSwitch = TRUE)
   
     weeklySelection <- weekly %>% 
       ungroup() %>% 
-      filter(coded_country %in% input$long_ctrs_country_selection) %>% 
       dplyr::select(coded_country, weekDate, value = one_of(paste0(input$long_ctrs_var, "_mean"))) %>%
+      filter(coded_country %in% input$long_ctrs_country_selection, !is.na(value)) %>% 
       group_by(coded_country) %>%
       do(ds = list(
         data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$value)),
@@ -1988,16 +1980,18 @@ server <- function(input, output, session) {
     
     weeklySelectionCI <- weekly %>% 
       ungroup() %>% 
-      filter(coded_country %in% input$long_ctrs_country_selection) %>% 
       dplyr::select(coded_country, weekDate, lwr = one_of(paste0(input$long_ctrs_var, "_lwr")), upr = one_of(paste0(input$long_ctrs_var, "_upr"))) %>%
+      filter(coded_country %in% input$long_ctrs_country_selection, !is.na(lwr)) %>% 
       group_by(coded_country) %>%
       do(ds = list(data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$lwr, .$upr)),
-                   type = 'arearange',
+                   type = 'areasplinerange',
                    fillOpacity = 0.3,
                    lineWidth = 0,
                    name = "95% Confidence Interval",
                    zIndex = 0, 
                    showInLegend = FALSE,
+                   marker = list(enabled = FALSE,
+                                 states = list(hover = list(enabled = FALSE))),
                    visible = as.logical(input$long_ctrs_CiSwitch)
       )) %>% 
       {purrr::map2(.$coded_country, .$ds, function(x, y){
