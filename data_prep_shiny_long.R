@@ -33,6 +33,131 @@ standardize_long <- function(raw_data, vars, respSetMeans, respSetSDs){
   return(standardized_data)
 }
 
+country_summarize <- function(df) {
+  ### Create country summaries (for time window) ###
+  
+  countryWeekly <- df %>% 
+    mutate(Dates = lubridate::parse_date_time(EndDate, "%Y/%m/%d %H:%M:%S"),
+           week = isoweek(Dates), 
+           # some weird inconsistencies in the function the added options ensure that Sunday is the last day of the week
+           weekLab = paste0(floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1)), " - ", 
+                            ceiling_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 7), change_on_boundary = FALSE)),
+           weekDate = floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1))) %>%
+    arrange(Dates) %>%
+    group_by(coded_country, week, weekLab, weekDate) %>%
+    summarise_at(vars(mvars), list(~ mean(., na.rm = T), 
+                                   ~ sd(., na.rm = T), 
+                                   n = ~ sum(!is.na(.)), 
+                                   se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                   lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                   upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
+    )
+    ) %>%
+    arrange(coded_country, week) %>%
+    mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .)))
+  
+  # countryWeekly %>%
+  #   filter(coded_country == "United States of America") %>%
+  #   dplyr::select(weekDate, ends_with("_n")) %>%
+  #   View(.)
+  
+  return(countryWeekly)
+}
+
+clean_country <- function(df_country, minWeekN) {
+  # remove any that measures that have less than minWeekN participants
+  
+  countryWeeklyRed <- df_country
+  
+  meanCols <- grep("_mean", names(df_country))
+  sdCols <- grep("_sd", names(df_country))
+  seCols <- grep("_se", names(df_country))
+  lwrCols <- grep("_lwr", names(df_country))
+  uprCols <- grep("_upr", names(df_country))
+  nCols <- grep("_n", names(df_country))
+  
+  countryWeeklyRed[meanCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[sdCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[seCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[lwrCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[uprCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[nCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  
+  # remove all rows that have missingness on all
+  # alternative: weeklyOut3 <- weeklyOut[!rowSums(is.na(weeklyOut[nCols])),]
+  countryWeeklyRed <- countryWeeklyRed %>%
+    #filter_at(vars(nCols),all_vars(!is.na(.))) %>%
+    group_by(coded_country) %>%
+    filter(n()>2) %>% # filter all countries that 3 or more measurement weeks
+    ungroup()
+  
+  # load world data for maps and iso codes
+  world.data <- ne_countries(scale = "medium", returnclass = "sf")
+  world.data$iso_a2[world.data$admin=="Kosovo"] <- "XK"
+  
+  countryWeeklyRed <- merge(x = countryWeeklyRed, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T) %>% 
+    dplyr::select(-geometry)
+  countryWeeklyRed$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(countryWeeklyRed$iso_a2))
+  
+  return(countryWeeklyRed)
+}
+
+global_summarize <- function(df){
+  ### Create global summary (for time window) ###
+  
+  globalWeekly <- df %>% 
+    mutate(Dates = lubridate::parse_date_time(EndDate, "%Y/%m/%d %H:%M:%S"),
+           week = isoweek(Dates), 
+           # some weird inconsistencies in the function the added options ensure that Sunday is the last day of the week
+           weekLab = paste0(floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1)), " - ", 
+                            ceiling_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 7), change_on_boundary = FALSE)),
+           weekDate = floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1))) %>%
+    #arrange(Dates) %>%
+    #filter(paste(.$coded_country, .$week) %in% paste(countryWeeklyRed$coded_country, countryWeeklyRed$week)) %>% # only include country and week if also in country Weekly Red
+    mutate(coded_country = "global") %>%
+    group_by(coded_country, week, weekLab, weekDate) %>%
+    summarise_at(vars(mvars), list(~ mean(., na.rm = T), 
+                                   ~ sd(., na.rm = T), 
+                                   n = ~ sum(!is.na(.)), 
+                                   se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                   lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
+                                   upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
+    )
+    ) %>%
+    arrange(coded_country, week) %>%
+    #mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .))) %>%
+    mutate(iso_a2 = NA,
+           flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
+  
+  return(globalWeekly)
+}
+
+clean_global <- function(df_global, minWeekN) {
+  # remove any that measures that have less than minWeekN participants
+  
+  globalWeeklyRed <- df_global
+  
+  meanCols <- grep("_mean", names(df_global))
+  sdCols <- grep("_sd", names(df_global))
+  seCols <- grep("_se", names(df_global))
+  lwrCols <- grep("_lwr", names(df_global))
+  uprCols <- grep("_upr", names(df_global))
+  nCols <- grep("_n", names(df_global))
+  
+  globalWeeklyRed[meanCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[sdCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[seCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[lwrCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[uprCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[nCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  
+  
+  globalWeeklyRed <- globalWeeklyRed %>%
+    filter_at(vars(nCols),all_vars(!is.na(.)))
+  
+  return(globalWeeklyRed)
+}
+
 ### Load in data ###
 load("data/shinyDataShinyPrep.RData")
 vars <- read.csv("data/vars_long.csv")
@@ -67,6 +192,16 @@ respSetSDsWaves <- shiny_prep[,sapply(waves,
                               function(x,var){return(paste0(x,"_",var))},
                               var="respSetSd")]
 
+### create harominzed variables for friends/people online/inPerson ###
+
+for (var in c("isoFriends_inPerson", "isoOthPpl_inPerson",
+              "isoFriends_online", "isoOthPpl_online")) {
+  
+  shiny_prep[,paste0(waves,"_",var,"_Harmonized")] <- shiny_prep[,paste0(waves,"_",var)] %>%
+                                                                  mutate_all(as.numeric) %>%
+                                                                  mutate_all(~ scales::rescale(., to = c(1,7)))
+  
+}
 
 ### combine waves with varnames ###
 
@@ -186,162 +321,58 @@ reducedFL_S <- reshape(reducedFL_S, direction = "long",
                       ) %>% filter(!is.na(EndDate))
 
 
-### Quick and dirty loop work ###
-df_list_long <- list(reducedFL, reducedFL_S)
-df_names <- c("","Standardized")
-index <- 1
+### Summarize on country and global level for standardized and regular ###
 
-for (df in df_list_long) {
-  ### Create country summaries (for time window) ###
-  
-  countryWeekly <- df %>% 
-    mutate(Dates = lubridate::parse_date_time(EndDate, "%Y/%m/%d %H:%M:%S"),
-           week = isoweek(Dates), 
-           # some weird inconsistencies in the function the added options ensure that Sunday is the last day of the week
-           weekLab = paste0(floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1)), " - ", 
-                            ceiling_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 7), change_on_boundary = FALSE)),
-           weekDate = floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1))) %>%
-    arrange(Dates) %>%
-    group_by(coded_country, week, weekLab, weekDate) %>%
-    summarise_at(vars(mvars), list(~ mean(., na.rm = T), 
-                                   ~ sd(., na.rm = T), 
-                                   n = ~ sum(!is.na(.)), 
-                                   se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
-                                   lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
-                                   upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
-    )
-    ) %>%
-    arrange(coded_country, week) %>%
-    mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .)))
-  
-  # countryWeekly %>%
-  #   filter(coded_country == "United States of America") %>%
-  #   dplyr::select(weekDate, ends_with("_n")) %>%
-  #   View(.)
-  
-  # remove any that measures that have less than 20 participants
-  #  there is probably a better way of doing this but quick and dirty here we go.
-  #  better solution probably for-loop or spread and gather stuff: https://stackoverflow.com/questions/48600340/change-column-value-to-na-based-on-other-column-condition
-  countryWeeklyRed <- countryWeekly
-  
-  meanCols <- grep("_mean", names(countryWeekly))
-  sdCols <- grep("_sd", names(countryWeekly))
-  seCols <- grep("_se", names(countryWeekly))
-  lwrCols <- grep("_lwr", names(countryWeekly))
-  uprCols <- grep("_upr", names(countryWeekly))
-  nCols <- grep("_n", names(countryWeekly))
-  minWeekN <- 10 
-  
-  countryWeeklyRed[meanCols][countryWeeklyRed[nCols] < minWeekN] <- NA
-  countryWeeklyRed[sdCols][countryWeeklyRed[nCols] < minWeekN] <- NA
-  countryWeeklyRed[seCols][countryWeeklyRed[nCols] < minWeekN] <- NA
-  countryWeeklyRed[lwrCols][countryWeeklyRed[nCols] < minWeekN] <- NA
-  countryWeeklyRed[uprCols][countryWeeklyRed[nCols] < minWeekN] <- NA
-  countryWeeklyRed[nCols][countryWeeklyRed[nCols] < minWeekN] <- NA
-  
-  # remove all rows that have missingness on all
-  # alternative: weeklyOut3 <- weeklyOut[!rowSums(is.na(weeklyOut[nCols])),]
-  countryWeeklyRed <- countryWeeklyRed %>%
-    #filter_at(vars(nCols),all_vars(!is.na(.))) %>%
-    group_by(coded_country) %>%
-    filter(n()>2) %>% # filter all countries that 3 or more measurement weeks
-    ungroup()
-  
-  # load world data for maps and iso codes
-  world.data <- ne_countries(scale = "medium", returnclass = "sf")
-  world.data$iso_a2[world.data$admin=="Kosovo"] <- "XK"
-  
-  countryWeeklyRed <- merge(x = countryWeeklyRed, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T) %>% 
-    dplyr::select(-geometry)
-  countryWeeklyRed$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(countryWeeklyRed$iso_a2))
-  
-  globalWeekly <- df %>% 
-    mutate(Dates = lubridate::parse_date_time(EndDate, "%Y/%m/%d %H:%M:%S"),
-           week = isoweek(Dates), 
-           # some weird inconsistencies in the function the added options ensure that Sunday is the last day of the week
-           weekLab = paste0(floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1)), " - ", 
-                            ceiling_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 7), change_on_boundary = FALSE)),
-           weekDate = floor_date(as_date(Dates), unit="week", week_start = getOption("lubridate.week.start", 1))) %>%
-    #arrange(Dates) %>%
-    #filter(paste(.$coded_country, .$week) %in% paste(countryWeeklyRed$coded_country, countryWeeklyRed$week)) %>% # only include country and week if also in country Weekly Red
-    mutate(coded_country = "global") %>%
-    group_by(coded_country, week, weekLab, weekDate) %>%
-    summarise_at(vars(mvars), list(~ mean(., na.rm = T), 
-                                   ~ sd(., na.rm = T), 
-                                   n = ~ sum(!is.na(.)), 
-                                   se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
-                                   lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
-                                   upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
-    )
-    ) %>%
-    arrange(coded_country, week) %>%
-    #mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .))) %>%
-    mutate(iso_a2 = NA,
-           flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg")
-  
-  globalWeeklyRed <- globalWeekly
-  
-  meanCols <- grep("_mean", names(globalWeekly))
-  sdCols <- grep("_sd", names(globalWeekly))
-  seCols <- grep("_se", names(globalWeekly))
-  lwrCols <- grep("_lwr", names(globalWeekly))
-  uprCols <- grep("_upr", names(globalWeekly))
-  nCols <- grep("_n", names(globalWeekly))
-  minWeekN <- 10 
-  
-  globalWeeklyRed[meanCols][globalWeeklyRed[nCols] < minWeekN] <- NA
-  globalWeeklyRed[sdCols][globalWeeklyRed[nCols] < minWeekN] <- NA
-  globalWeeklyRed[seCols][globalWeeklyRed[nCols] < minWeekN] <- NA
-  globalWeeklyRed[lwrCols][globalWeeklyRed[nCols] < minWeekN] <- NA
-  globalWeeklyRed[uprCols][globalWeeklyRed[nCols] < minWeekN] <- NA
-  globalWeeklyRed[nCols][globalWeeklyRed[nCols] < minWeekN] <- NA
-  
-  
-  ### Remove variables that were not harmonized ###
-  
-  # Note: this is likely not intended and just a quick fix for now.
-  if (index == 2) {
-    globalWeeklyRed <- globalWeeklyRed[,apply(globalWeeklyRed,MARGIN=2, FUN = function(x){!all(is.na(x))})]
-  }
-  
-  globalWeeklyRed <- globalWeeklyRed %>%
-    filter_at(vars(nCols),all_vars(!is.na(.)))
-  
+# Regular Sample
 
-  weekly <- rbind(globalWeeklyRed, countryWeeklyRed)
-  
-  ### Follow-up Histogram ###
-  # hist(ymd_hms(df$EndDate),
-  #      "days", las=2, freq=T, format = "%d %b", xlab=NULL,
-  #      main="Participation over time")
-  # 
-  # ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
-  #   geom_line() +
-  #   geom_point() +
-  #   facet_wrap(~coded_country, scales = "free_y") +
-  #   ggtitle("Participation Affect Boredom over Time per Country (individual y axes)")
-  # 
-  # ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
-  #   geom_line() +
-  #   geom_point() +
-  #   scale_y_continuous(trans='log2') +
-  #   facet_wrap(~coded_country) + #, scales = "free_y"
-  #   ggtitle("Participation Affect Boredom over Time per Country")
-  
-  ### Save for Shiny ###
-  weeklyRegions <- weekly %>% 
-    ungroup() %>%
-    dplyr::select(coded_country, flag) %>%
-    distinct()
-  weeklyCountries <- weekly %>% 
-    ungroup() %>%
-    dplyr::select(coded_country, flag) %>%
-    distinct() %>%
-    filter(coded_country != "global")
-  
-  surveyN <- max(colSums(globalWeeklyRed[nCols]), na.rm = T)
-  
-  save(weekly, weeklyRegions, weeklyCountries, mvars, waves, surveyN, file = paste0("data/shinyDataLongitudinal", df_names[index], ".RData"))
-  index <- index + 1
-}
+countryWeekly <- country_summarize(reducedFL)
+countryWeeklyRed <- clean_country(countryWeekly, 10)
 
+globalWeekly <- global_summarize(reducedFL)
+globalWeeklyRed <- clean_global(globalWeekly, 10)
+
+weekly <- rbind(globalWeeklyRed, countryWeeklyRed)
+
+# Standardized Sample
+
+countryWeekly_S <- country_summarize(reducedFL_S)
+countryWeeklyRed_S <- clean_country(countryWeekly_S, 10)
+
+globalWeekly_S <- global_summarize(reducedFL_S)
+globalWeeklyRed_S <- clean_global(globalWeekly_S, 10)
+
+weekly_S <- rbind(globalWeeklyRed_S, countryWeeklyRed_S)
+
+### Save for Shiny ###
+
+# Regular Sample
+
+weeklyRegions <- weekly %>% 
+  ungroup() %>%
+  dplyr::select(coded_country, flag) %>%
+  distinct()
+weeklyCountries <- weekly %>% 
+  ungroup() %>%
+  dplyr::select(coded_country, flag) %>%
+  distinct() %>%
+  filter(coded_country != "global")
+
+# Standardized Sample
+
+weeklyRegions_S <- weekly_S %>% 
+  ungroup() %>%
+  dplyr::select(coded_country, flag) %>%
+  distinct()
+weeklyCountries_S <- weekly_S %>% 
+  ungroup() %>%
+  dplyr::select(coded_country, flag) %>%
+  distinct() %>%
+  filter(coded_country != "global")
+
+surveyN <- max(colSums(globalWeeklyRed[grep("_n", names(countryWeekly))]),
+               na.rm = T)
+
+save(weekly, weeklyRegions, weeklyCountries,
+     weekly_S, weeklyRegions_S, weeklyCountries_S,
+     mvars, waves, surveyN,
+     file = "data/shinyDataLongitudinal.RData")
