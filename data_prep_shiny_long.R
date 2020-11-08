@@ -230,13 +230,14 @@ for (df in df_list_long) {
   lwrCols <- grep("_lwr", names(countryWeekly))
   uprCols <- grep("_upr", names(countryWeekly))
   nCols <- grep("_n", names(countryWeekly))
+  minWeekN <- 10 
   
-  countryWeeklyRed[meanCols][countryWeeklyRed[nCols] <= 9] <- NA
-  countryWeeklyRed[sdCols][countryWeeklyRed[nCols] <= 9] <- NA
-  countryWeeklyRed[seCols][countryWeeklyRed[nCols] <= 9] <- NA
-  countryWeeklyRed[lwrCols][countryWeeklyRed[nCols] <= 9] <- NA
-  countryWeeklyRed[uprCols][countryWeeklyRed[nCols] <= 9] <- NA
-  countryWeeklyRed[nCols][countryWeeklyRed[nCols] <= 9] <- NA
+  countryWeeklyRed[meanCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[sdCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[seCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[lwrCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[uprCols][countryWeeklyRed[nCols] < minWeekN] <- NA
+  countryWeeklyRed[nCols][countryWeeklyRed[nCols] < minWeekN] <- NA
   
   # remove all rows that have missingness on all
   # alternative: weeklyOut3 <- weeklyOut[!rowSums(is.na(weeklyOut[nCols])),]
@@ -286,13 +287,14 @@ for (df in df_list_long) {
   lwrCols <- grep("_lwr", names(globalWeekly))
   uprCols <- grep("_upr", names(globalWeekly))
   nCols <- grep("_n", names(globalWeekly))
+  minWeekN <- 10 
   
-  globalWeeklyRed[meanCols][globalWeeklyRed[nCols] <= 9] <- NA
-  globalWeeklyRed[sdCols][globalWeeklyRed[nCols] <= 9] <- NA
-  globalWeeklyRed[seCols][globalWeeklyRed[nCols] <= 9] <- NA
-  globalWeeklyRed[lwrCols][globalWeeklyRed[nCols] <= 9] <- NA
-  globalWeeklyRed[uprCols][globalWeeklyRed[nCols] <= 9] <- NA
-  globalWeeklyRed[nCols][globalWeeklyRed[nCols] <= 9] <- NA
+  globalWeeklyRed[meanCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[sdCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[seCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[lwrCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[uprCols][globalWeeklyRed[nCols] < minWeekN] <- NA
+  globalWeeklyRed[nCols][globalWeeklyRed[nCols] < minWeekN] <- NA
   
   
   ### Remove variables that were not harmonized ###
@@ -309,26 +311,24 @@ for (df in df_list_long) {
   weekly <- rbind(globalWeeklyRed, countryWeeklyRed)
   
   ### Follow-up Histogram ###
-  
-  hist(ymd_hms(df$EndDate),
-       "days", las=2, freq=T, format = "%d %b", xlab=NULL,
-       main="Participation over time")
-  
-  ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
-    geom_line() +
-    geom_point() +
-    facet_wrap(~coded_country, scales = "free_y") +
-    ggtitle("Participation Affect Boredom over Time per Country (individual y axes)")
-  
-  ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
-    geom_line() +
-    geom_point() +
-    scale_y_continuous(trans='log2') +
-    facet_wrap(~coded_country) + #, scales = "free_y"
-    ggtitle("Participation Affect Boredom over Time per Country")
+  # hist(ymd_hms(df$EndDate),
+  #      "days", las=2, freq=T, format = "%d %b", xlab=NULL,
+  #      main="Participation over time")
+  # 
+  # ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
+  #   geom_line() +
+  #   geom_point() +
+  #   facet_wrap(~coded_country, scales = "free_y") +
+  #   ggtitle("Participation Affect Boredom over Time per Country (individual y axes)")
+  # 
+  # ggplot(countryWeekly, aes(x=week, y=affBor_n)) +
+  #   geom_line() +
+  #   geom_point() +
+  #   scale_y_continuous(trans='log2') +
+  #   facet_wrap(~coded_country) + #, scales = "free_y"
+  #   ggtitle("Participation Affect Boredom over Time per Country")
   
   ### Save for Shiny ###
-  
   weeklyRegions <- weekly %>% 
     ungroup() %>%
     dplyr::select(coded_country, flag) %>%

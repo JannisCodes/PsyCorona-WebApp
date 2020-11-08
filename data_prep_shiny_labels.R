@@ -176,15 +176,23 @@ data_prep <- function(){
   raw.data$consp.m <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]$")), min = 0, max = 10)$scores # changed selection to use RE
   
   ### Calculate compound scores for Harmonized ###
-  raw.data$affHighPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affEnerg_Harmonized, affExc_Harmonized, affInsp_Harmonized), min = 1, max = 5)$scores
-  raw.data$affHighNeg.m_Harmonized <- scoreItems(keys=c(1,1), items = raw.data %>% dplyr::select(affAnx_Harmonized, affNerv_Harmonized), min = 1, max = 5)$scores[1]
-  raw.data$affLowPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affCalm_Harmonized, affContent_Harmonized, affRel_Harmonized), min = 1, max = 5)$scores
-  raw.data$affLowNeg.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affBor_Harmonized, affExh_Harmonized, affDepr_Harmonized), min = 1, max = 5)$scores
-  raw.data$lone.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^lone[0][[:digit:]]_Harmonized$")), min = 1, max = 5)$scores # changed selection to use RE
-  raw.data$isoPers.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores # No harmonized one
-  raw.data$isoOnl.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores # No harmonized one
-  raw.data$para.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^para[0][[:digit:]]_Harmonized$")), min = 0, max = 10)$scores # changed selection to use RE
-  raw.data$consp.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]_Harmonized$")), min = 0, max = 10)$scores # changed selection to use RE
+  raw.data$affHighPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affEnerg_Harmonized, affExc_Harmonized, affInsp_Harmonized), min = 1, max = 7)$scores
+  raw.data$affHighNeg.m_Harmonized <- scoreItems(keys=c(1,1), items = raw.data %>% dplyr::select(affAnx_Harmonized, affNerv_Harmonized), min = 1, max = 7)$scores[1]
+  raw.data$affLowPos.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affCalm_Harmonized, affContent_Harmonized, affRel_Harmonized), min = 1, max = 7)$scores
+  raw.data$affLowNeg.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(affBor_Harmonized, affExh_Harmonized, affDepr_Harmonized), min = 1, max = 7)$scores
+  raw.data$lone.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^lone[0][[:digit:]]_Harmonized$")), min = 1, max = 7)$scores
+  
+  raw.data$isoPers.m_Harmonized <- scoreItems(keys=c(1,1,1), 
+                                              items = raw.data %>% dplyr::select(ends_with("inPerson"), -starts_with("w")) %>% mutate_all(as.numeric) %>% mutate_all(~ scales::rescale(., to = c(1,7))), 
+                                              min = 1, 
+                                              max = 7)$scores # No harmonized one
+  raw.data$isoOnl.m_Harmonized <- scoreItems(keys=c(1,1,1), 
+                                              items = raw.data %>% dplyr::select(ends_with("online"), -starts_with("w")) %>% mutate_all(as.numeric) %>% mutate_all(~ scales::rescale(., to = c(1,7))), 
+                                              min = 1, 
+                                              max = 7)$scores # No harmonized one
+  
+  raw.data$para.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^para[0][[:digit:]]_Harmonized$")), min = 1, max = 7)$scores 
+  raw.data$consp.m_Harmonized <- scoreItems(keys=c(1,1,1), items = raw.data %>% dplyr::select(matches("^consp[0][[:digit:]]_Harmonized$")), min = 1, max = 7)$scores 
   
   
   ### Add standardized variables ###
