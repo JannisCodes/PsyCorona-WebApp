@@ -51,8 +51,8 @@ country_summarize <- function(df) {
                                    se = ~ sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
                                    lwr = ~ mean(., na.rm = T) - 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.))),
                                    upr = ~ mean(., na.rm = T) + 1.96*sd(.,na.rm=TRUE)/sqrt(sum(!is.na(.)))
-    )
-    ) %>%
+                                   )
+                 ) %>%
     arrange(coded_country, week) %>%
     mutate_if(is.numeric, funs(ifelse(is.nan(.), NA, .)))
   
@@ -86,7 +86,8 @@ clean_country <- function(df_country, minWeekN) {
   # remove all rows that have missingness on all
   # alternative: weeklyOut3 <- weeklyOut[!rowSums(is.na(weeklyOut[nCols])),]
   countryWeeklyRed <- countryWeeklyRed %>%
-    #filter_at(vars(nCols),all_vars(!is.na(.))) %>%
+    #filter(across(nCols, ~ !is.na(.x))) %>% 
+    filter_at(vars(nCols),all_vars(!is.na(.))) %>% # should be the same as before
     group_by(coded_country) %>%
     filter(n()>2) %>% # filter all countries that 3 or more measurement weeks
     ungroup()
@@ -215,7 +216,7 @@ longmvarV_S <- c() # for reduced frame: a vector
 longmvar_S <- list() # a list of vectors for reshape
 
 index <- 1 # to keep track of list indexing
-var <- "affAnx"
+#var <- "affAnx"
 for(var in mvars) {
   longSingleVar <- sapply(waves,
                           function(x,var){return(paste0(x,"_",var))},
@@ -368,6 +369,24 @@ weeklyCountries_S <- weekly_S %>%
   dplyr::select(coded_country, flag) %>%
   distinct() %>%
   filter(coded_country != "global")
+
+if(isTRUE(all.equal(weeklyRegions,weeklyRegions_S))) {
+  cat("OK. Standardized and Unstandardized regions the same")
+  } else {
+  stop("Standardized and Unstandardized regions are not the same!")
+  }
+ 
+if(isTRUE(all.equal(weeklyCountries,weeklyCountries_S))) {
+  cat("OK. Standardized and Unstandardized countries the same")
+  } else {
+  stop("Standardized and Unstandardized countries are not the same!")
+  }
+
+
+# anti_join(weekly, 
+#           weekly_S, 
+#           by=c("coded_country", "week")) %>% 
+#   View(.)
 
 surveyN <- max(colSums(globalWeeklyRed[grep("_n", names(countryWeekly))]),
                na.rm = T)
