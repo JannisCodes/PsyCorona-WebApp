@@ -614,7 +614,7 @@ ui <- dashboardPage(
                                       box(width = 12, 
                                           solidHeader = T,
                                           h3("We are working hard to bring you new content."),
-                                          h5("We are already testing for bugs. Soon you will be able to directly compare multiple variables in their development over time."),
+                                          h5("We have hit a bit of a snag but we are already testing for bugs. Soon you will be able to directly compare multiple variables in their development over time."),
                                           br(),
                                           h3("Estimated Time until release:"),
                                           h2(textOutput('eventTimeRemaining')),
@@ -2296,7 +2296,7 @@ server <- function(input, output, session) {
   
   output$eventTimeRemaining <- renderText({
     invalidateLater(1000, session)
-    paste(seconds_to_period(interval(Sys.time(), "2020-11-06 23:59:59 CET") %/% seconds(1)))
+    paste(seconds_to_period(interval(Sys.time(), "2021-02-15 23:59:59 CET", tz= "CET") %/% seconds(1)))
   })
   
   
