@@ -612,6 +612,7 @@ ui <- dashboardPage(
                                       )
                                   ),
                          tabPanel("Multiple Variables",
+                                  bsAlert("longitudinalAlert2"),
                                   box(#title = "Explore The Data",
                                       width = 12,
                                       heigth = "500px",
@@ -622,7 +623,7 @@ ui <- dashboardPage(
                                   box(width = 12,
                                       solidHeader = T,
                                       status = "primary",
-                                      h4("Select Variables:"),
+                                      h4("Select Region:"),
                                       fluidRow(
                                         column(width = 8, style = "margin-top: 6px;",
                                                pickerInput(inputId = "long_vars_country",
@@ -866,6 +867,15 @@ server <- function(input, output, session) {
   
   createAlert(session = session,
               anchorId = "longitudinalAlert",
+              #alertId="a1",
+              title = paste(icon("warning"),"Preliminary Data"),
+              content="You are beta testing this section. We aim to provide access to more data from more countries. However, to protect the privacy of our participants, 
+              we will never release visualizations of data if we cannot be certain that the data are anonymous. 
+              Additionally, standardized visualization options will be available soon for all developmental visualizations.",
+              style = "warning")
+  
+  createAlert(session = session,
+              anchorId = "longitudinalAlert2",
               #alertId="a1",
               title = paste(icon("warning"),"Preliminary Data"),
               content="You are beta testing this section. We aim to provide access to more data from more countries. However, to protect the privacy of our participants, 
@@ -2068,10 +2078,15 @@ server <- function(input, output, session) {
     # for testing:
     # input <- list(long_ctrs_country_selection = c("United States of America", "Germany"), long_ctrs_var = c("affBor_mean"))
     
+    if (length(input$long_vars_variables)==0) {
+      highchart() %>%
+        hc_title(text = "Select Variables to Display")
+    } else {
+    
     weeklySelection <- weekly_S %>%
       ungroup() %>%
-      filter(coded_country %in% input$long_vars_country) %>%
       dplyr::select(coded_country, weekDate, one_of(paste0(input$long_vars_variables, "_mean"))) %>%
+      filter(coded_country %in% input$long_vars_country) %>%
       reshape(., 
               direction = "long",
               varying = list(paste0(input$long_vars_variables, "_mean")),
@@ -2170,6 +2185,7 @@ server <- function(input, output, session) {
           list(type = 'month', count = 2, text = '2m'),
           list(type = 'week', count = 6, text = '6w')
         ))
+    }
   })
   
   # -----
