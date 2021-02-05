@@ -858,7 +858,7 @@ server <- function(input, output, session) {
               #alertId="a1",
               title = paste(icon("warning"),"Data Notification"),
               content="To protect the privacy of everyone who took our survey, this application only uses aggregate, anonymized data (i.e., no individual person is identifiable). 
-              For further information, see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that we display data collected over the past weeks. 
+              For further information, see our <a href='#' onclick=\"openTab('data')\">data description section</a>. Bear in mind that this display shows data collected during the first lockdown period (March through May 2020). 
               This means the data might not be representative of how countries are doing right now. 
               Where possible, we also provide <b> nationally representative, standardized, and developmental (longitudinal) displays of the data</b>. 
               You can find these options in the left sidebar.",
@@ -2010,22 +2010,22 @@ server <- function(input, output, session) {
       hc_add_series_list(weeklySelection) %>% 
       hc_add_series_list(weeklySelectionCI) %>% 
       hc_xAxis(type = "datetime") %>% 
-      # hc_yAxis(title = list(text = as.character(varLabLong[input$long_ctrs_var])),
-      #          min = minLong[[input$long_ctrs_var]],
-      #          max = maxLong[[input$long_ctrs_var]],
-      #          showLastLabel = T,
-      #          showFirstLabel = T,
-      #          tickInterval = 1,
-      #          opposite = F,
-      #          plotLines = list(
-      #            list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][1]),
-      #                 color = "#'FF0000",
-      #                 width = 2,
-      #                 value = minLong[[input$long_ctrs_var]]),
-      #            list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][2]),
-      #                 color = "#'FF0000",
-      #                 width = 2,
-      #                 value = maxLong[[input$long_ctrs_var]]))) %>%
+      hc_yAxis(title = list(text = as.character(varLabLong[input$long_ctrs_var])),
+               min = ifelse(input$switch_transformation == "raw", minLong[[input$long_ctrs_var]], -3),
+               max = ifelse(input$switch_transformation == "raw", maxLong[[input$long_ctrs_var]], 3),
+               showLastLabel = T,
+               showFirstLabel = T,
+               tickInterval = 1,
+               opposite = F,
+               plotLines = list(
+                 list(label = list(text = ifelse(input$switch_transformation == "raw", lab.y.ends.long[input$long_ctrs_var][[1]][1], "")),
+                      color = "#'FF0000",
+                      width = 2,
+                      value = minLong[[input$long_ctrs_var]]),
+                 list(label = list(text = ifelse(input$switch_transformation == "raw", lab.y.ends.long[input$long_ctrs_var][[1]][2], "")),
+                      color = "#'FF0000",
+                      width = 2,
+                      value = maxLong[[input$long_ctrs_var]]))) %>%
       hc_plotOptions(
         spline = list(
           #color = brewer.pal(length(input$long_ctrs_country_selection), "Dark2"),
@@ -2079,6 +2079,7 @@ server <- function(input, output, session) {
               v.names = "value",
               idvar = c("coded_country", "weekDate"),
               times = input$long_vars_variables) %>%
+      mutate(variable = recode(variable, !!!varLabLong)) %>%
       group_by(variable) %>%
       do(ds = list(
         data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$value)),
@@ -2087,7 +2088,7 @@ server <- function(input, output, session) {
       )) %>%
       {purrr::map2(.$variable, .$ds, function(x, y){
         append(list(name = x), y)
-      })}
+      })} 
     
     weeklySelectionCI <- weekly_S %>%
       ungroup() %>%
@@ -2100,6 +2101,7 @@ server <- function(input, output, session) {
               times=input$long_vars_variables,
               v.names=c('lwr', 'upr'),
               idvar=c("coded_country", "weekDate")) %>%
+      mutate(variable = recode(variable, !!!varLabLong)) %>%
       group_by(variable) %>%
       do(ds = list(data = highcharter::list_parse2(data.frame(datetime_to_timestamp(.$weekDate), .$lwr, .$upr)),
                    type = 'areasplinerange',
@@ -2121,21 +2123,22 @@ server <- function(input, output, session) {
       hc_add_series_list(weeklySelection) %>% 
       hc_add_series_list(weeklySelectionCI) %>% 
       hc_xAxis(type = "datetime") %>% 
-      # hc_yAxis(title = list(text = as.character(varLabLong[input$long_ctrs_var])),
-      #          min = minLong[[input$long_ctrs_var]],
-      #          max = maxLong[[input$long_ctrs_var]],
-      #          showLastLabel = T,
-      #          showFirstLabel = T,
-      #          opposite = F,
-      #          plotLines = list(
-      #            list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][1]),
-      #                 color = "#'FF0000",
-      #                 width = 2,
-      #                 value = minLong[[input$long_ctrs_var]]),
-      #            list(label = list(text = lab.y.ends.long[input$long_ctrs_var][[1]][2]),
-      #                 color = "#'FF0000",
-      #                 width = 2,
-      #                 value = maxLong[[input$long_ctrs_var]]))) %>%
+      hc_yAxis(title = list(text = "Z Score"),
+               min = -2,
+               max = 2,
+               showLastLabel = T,
+               showFirstLabel = T,
+               tickInterval = 1,
+               opposite = F,
+               plotLines = list(
+                 list(label = list(text = ""),
+                      color = "#'FF0000",
+                      width = 2,
+                      value = -2),
+                 list(label = list(text = ""),
+                      color = "#'FF0000",
+                      width = 2,
+                      value = 2))) %>%
       hc_plotOptions(
         spline = list(
           #color = brewer.pal(length(input$long_ctrs_country_selection), "Dark2"),
@@ -2315,6 +2318,8 @@ server <- function(input, output, session) {
       # select_ctry_long <<- input$long_ctrs_country_selection
       # select_transformation <<- "standardized"
       # 
+      
+      
       df <- weekly
       
     } else if(input$sidebarMenu == "development" && input$switch_transformation == "standardized") {
