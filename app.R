@@ -1968,10 +1968,10 @@ server <- function(input, output, session) {
                           lone01 = c("Never", "All the time"),
                           para01 = c("Not at all", "Very much"),
                           consp01 = c("0%", "100%"),
-                          isoFriends_inPerson = c(),
-                          isoOthPpl_inPerson = c(),
-                          isoFriends_online = c(),
-                          isoOthPpl_online = c())
+                          isoFriends_inPerson = c("", ""),
+                          isoOthPpl_inPerson = c("", ""),
+                          isoFriends_online = c("", ""),
+                          isoOthPpl_online = c("", ""))
   
   output$long_ctrs_hc <- renderHighchart({
     # for testing:
